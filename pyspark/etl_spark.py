@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession, functions as f
 
 spark = SparkSession.builder.appName("NYC_taxi_ETL").getOrCreate()
+spark.sparkContext.setLogLevel("error")
 
 src_data_path = "/home/ec2-user/NYC_taxi/data/raw/"
 des_data_path = "/home/ec2-user/NYC_taxi/data/processed/"
