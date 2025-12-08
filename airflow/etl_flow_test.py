@@ -2,9 +2,10 @@ import textwrap
 from datetime import datetime, timedelta
 
 # Operators; we need this to operate!
-from airflow import DAG
-from airflow.operators.bash import BashOperator
+from airflow.providers.standard.operators.bash import BashOperator
 
+# The DAG object; we'll need this to instantiate a DAG
+from airflow import DAG
 with DAG(
     "tutorial",
     # These args will get passed on to each operator
