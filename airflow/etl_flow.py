@@ -28,6 +28,7 @@ with DAG(
     t1 = BashOperator(
         task_id="download_NYC_taxi_data",
         bash_command="""wget -P /home/ec2-user/NYC_taxi/data/raw/ -O yellow_tripdata_2025-01.parquet 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet' \
+
         aws s3 cp /home/ec2-user/NYC_taxi/data/raw/ s3://s3-giam-bucket-001/NYC_taxi/raw/2025/01/ --recursive"""
         )
     t2 = BashOperator(
