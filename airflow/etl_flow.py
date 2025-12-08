@@ -37,7 +37,7 @@ with DAG(
         )
     t3 = BashOperator(
         task_id = "save_processed",
-        bash_command="aws s3 cp /home/ec2-user/NYC_taxi/data/raw/ s3://s3-giam-bucket-001/NYC_taxi/processed/2025/01/ --recursive"
+        bash_command="aws s3 cp /home/ec2-user/NYC_taxi/data/processed/ s3://s3-giam-bucket-001/NYC_taxi/processed/2025/01/ --recursive"
         )
 
     t1 >> t2 >> t3
