@@ -27,7 +27,7 @@ with DAG(
     ) as dag:
     t1 = BashOperator(
         task_id="download_NYC_taxi_data",
-        bash_command="wget 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet' /home/ec2-user/NYC_taxi/data/raw/"
+        bash_command="wget -P /home/ec2-user/NYC_taxi/data/raw/ 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet' "
         )
     t2 = BashOperator(
         task_id = "perform_etl",
