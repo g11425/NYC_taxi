@@ -24,6 +24,11 @@ with DAG(
     ) as dag:
     t1 = BashOperator(
         task_id="download_NYC_taxi_data",
-        bash_command=""
+        bash_command="wget 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet' /home/ec2-user/NYC_taxi/data/raw/"
         )
-    t2 = 
+    t2 = BashOperator(
+        task_id = "perform_etl",
+        bash_command="spark-submit /home/ec2-user/NYC_taxi/pyspark/etl_spark.py"
+        )
+
+    t1 >> t2
