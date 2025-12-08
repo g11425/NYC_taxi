@@ -2,8 +2,8 @@ from pyspark.sql import SparkSession, functions as f
 
 spark = SparkSession.builder.appName("NYC_taxi_ETL").getOrCreate()
 
-src_data_path = "/home/ec2-user/project/NYC_taxi/data/raw/"
-des_data_path = "/home/ec2-user/project/NYC_taxi/data/processed/"
+src_data_path = "/home/ec2-user/NYC_taxi/data/raw/"
+des_data_path = "/home/ec2-user/NYC_taxi/data/processed/"
 file_name = "yellow_tripdata_2025-01.parquet"
 
 df = spark.read.parquet(src_data_path + file_name)
