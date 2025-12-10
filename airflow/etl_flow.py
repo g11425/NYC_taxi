@@ -9,8 +9,8 @@ import os
 from urllib.request import urlretrieve
 
 def fetch_data(**kwargs):
-    file_path_raw = "~/NYC_taxi/data/raw/"
-    file_path_processed = "~/NYC_taxi/data/processed/"
+    file_path_raw = os.path.expanduser("~/NYC_taxi/data/raw/")
+    file_path_processed = os.path.expanduser("~/NYC_taxi/data/processed/")
     file_name = "yellow_tripdata_2025-01.parquet"
     url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet'
 
