@@ -6,3 +6,5 @@ print(ROOT)
 SRC = ROOT
 sys.path.insert(0, SRC)
 print(sys.path)
+
+import airflow.etl_flow as f
