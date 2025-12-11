@@ -7,6 +7,7 @@ from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG
 import os
 from urllib.request import urlretrieve
+import boto3
 
 def fetch_data(**kwargs):
     file_path_raw = os.path.expanduser("~/NYC_taxi/data/raw/")
@@ -20,6 +21,10 @@ def fetch_data(**kwargs):
         os.mkdir(file_path_processed)
     
     urlretrieve(url, file_path_raw+file_name)
+
+    s3 = boto3.client("s3")
+    s3.upload_file(Filename=/home/ec2-user/NYC_taxi/data/raw/ s3://s3-giam-bucket-001/NYC_taxi/raw/2025/01/)
+
     print("successfully saved data")
 
 with DAG(
@@ -44,12 +49,12 @@ with DAG(
     ) as dag:
 
 
-    t1 = BashOperator(
-        task_id="download_NYC_taxi_data",
-        bash_command="""wget -O /home/ec2-user/NYC_taxi/data/raw/yellow_tripdata_2025-01.parquet 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet' \
+    # t1 = BashOperator(
+    #     task_id="download_NYC_taxi_data",
+    #     bash_command="""wget -O /home/ec2-user/NYC_taxi/data/raw/yellow_tripdata_2025-01.parquet 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet' \
 
-        aws s3 cp /home/ec2-user/NYC_taxi/data/raw/ s3://s3-giam-bucket-001/NYC_taxi/raw/2025/01/ --recursive"""
-        )
+    #     aws s3 cp /home/ec2-user/NYC_taxi/data/raw/ s3://s3-giam-bucket-001/NYC_taxi/raw/2025/01/ --recursive"""
+    #     )
     t2 = BashOperator(
         task_id = "perform_etl",
         bash_command="spark-submit /home/ec2-user/NYC_taxi/pyspark/etl_spark.py"
