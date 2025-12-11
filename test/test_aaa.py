@@ -9,3 +9,8 @@ def test_abc():
     sys.path.insert(0, SRC)
     print(sys.path)
     assert 1+1 == 2
+
+import airflow.etl_flow as flw 
+
+def test_fetch_data():
+    assert flw.fetch_data() == True
