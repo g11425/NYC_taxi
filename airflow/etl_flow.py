@@ -10,7 +10,7 @@ from airflow.sdk import DAG
 import os
 from urllib.request import urlretrieve
 import boto3
-import error
+
 
 def upload_to_S3(**kwargs):
     file_path_raw = os.path.expanduser("~/NYC_taxi/data/raw/")
