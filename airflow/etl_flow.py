@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+import logging
+from urllib import response
 # Operators; we need this to operate!
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
@@ -8,6 +10,28 @@ from airflow.sdk import DAG
 import os
 from urllib.request import urlretrieve
 import boto3
+import error
+
+def upload_to_S3(**kwargs):
+    file_path_raw = os.path.expanduser("~/NYC_taxi/data/raw/")
+    file_path_processed = os.path.expanduser("~/NYC_taxi/data/processed/")
+    file_name = "yellow_tripdata_2025-01.parquet"
+
+    bucket_name = "s3-giam-bucket-001"
+    save_key = "/NYC_taxi/raw/2025/01/"
+
+    s3 = boto3.client("s3")
+    try:
+        response = s3.upload_file(filename=file_path_raw + file_name,
+                                  bucket=bucket_name,
+                                  key=save_key)
+        return True
+    except Exception as e:
+        logging.exception("error occured while uploading")
+        return False
+
+
+
 
 def fetch_data(**kwargs):
     file_path_raw = os.path.expanduser("~/NYC_taxi/data/raw/")
@@ -15,17 +39,25 @@ def fetch_data(**kwargs):
     file_name = "yellow_tripdata_2025-01.parquet"
     url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet'
 
-    if not os.path.exists(file_path_raw):
-        os.mkdir(file_path_raw)
-    if not os.path.exists(file_path_processed):
-        os.mkdir(file_path_processed)
+    try:
+
+        if not os.path.exists(file_path_raw):
+            os.mkdir(file_path_raw)
+        if not os.path.exists(file_path_processed):
+            os.mkdir(file_path_processed)
     
-    urlretrieve(url, file_path_raw+file_name)
+        urlretrieve(url, file_path_raw+file_name)
 
-    s3 = boto3.client("s3")
-    s3.upload_file(Filename=/home/ec2-user/NYC_taxi/data/raw/ s3://s3-giam-bucket-001/NYC_taxi/raw/2025/01/)
+        if upload_to_S3():
+            print("successfully saved data")
+        else:
+            print("failed. Data not saved to S3")
+        return True
+    except Exception as e:
+        logging.exception("fetch_data: failed")
+        return False
 
-    print("successfully saved data")
+
 
 with DAG(
     dag_id="NYC_taxi_flow",
