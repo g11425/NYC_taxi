@@ -49,7 +49,7 @@ class FileOps:
 	
 	def create_dummy_raw(self):
 		try:
-			file=open(self.test_file_raw)
+			file=open(self.test_file_raw, mode="w")
 			file.write("col1,col2,col3")
 			file.close()
 			return True
