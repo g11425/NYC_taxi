@@ -111,12 +111,15 @@ with DAG(
         task_id = "perform_etl",
         bash_command="spark-submit /home/ec2-user/NYC_taxi/pyspark/etl_spark.py"
         )
-    t3 = BashOperator(
-        task_id = "save_processed",
-        bash_command="aws s3 cp /home/ec2-user/NYC_taxi/data/processed/ s3://s3-giam-bucket-001/NYC_taxi/processed/2025/01/ --recursive"
-        )
+    # t3 = BashOperator(
+    #     task_id = "save_processed",
+    #     bash_command="aws s3 cp /home/ec2-user/NYC_taxi/data/processed/ s3://s3-giam-bucket-001/NYC_taxi/processed/2025/01/ --recursive"
+    #     )
     t4 = PythonOperator(
         task_id="python_fetch_data",
         python_callable=fetch_data)
+    t5 = PythonOperator(
+        task_id="python_save_processed",
+        python_callable=upload_to_s3_processed)
 
-    t4 >> t2 >> t3
+    t4 >> t2 >> t5
