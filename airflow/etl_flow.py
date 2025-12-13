@@ -12,6 +12,7 @@ from urllib.request import urlretrieve
 import boto3
 
 
+
 def upload_to_S3(**kwargs):
     file_path_raw = os.path.expanduser("~/NYC_taxi/data/raw/")
     file_path_processed = os.path.expanduser("~/NYC_taxi/data/processed/")
@@ -30,6 +31,11 @@ def upload_to_S3(**kwargs):
         logging.exception("error occured while uploading")
         return False
 
+def setup_data_directories():
+    if not os.path.exists(file_path_raw):
+        os.mkdir(file_path_raw)
+    if not os.path.exists(file_path_processed):
+        os.mkdir(file_path_processed)
 
 
 

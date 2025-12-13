@@ -1,0 +1,31 @@
+import os
+
+
+class FileOps:
+	
+	project_path = ""
+	data_path_raw = "/data/raw/"
+	data_path_processed = "/data/processed/"
+
+	def check_for_paths():
+		
+		raw_path = self.project_path + self.data_path_raw
+		processed_path = self.project_path + data_path_processed
+
+		try:
+
+			if not (os.path.exists(raw_path)):
+				os.mkdir(raw_path)
+
+			if not (os.path.exists(processed_path)):
+				os.mkdir(processed_path)
+			return True
+
+		except Exception as e:
+			logging.exception(e)
+			return False
+
+	def initialize(project_path):
+		self.project_path = project_path
+		self.check_for_paths()
+	
