@@ -72,7 +72,7 @@ def fetch_data(**kwargs):
         
         urlretrieve(url, os.path.join(f.data_path_raw, file_name))
         print(f.data_path_raw)
-        if upload_to_S3_raw(fileOps=f, file_name=f.test_file_raw):
+        if upload_to_S3_raw(fileOps=f, file_name=file_name):
             print("successfully saved data")
         else:
             print("failed. Data not saved to S3")
