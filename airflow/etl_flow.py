@@ -26,7 +26,7 @@ def upload_to_S3(fileOps:FileOps, file_name, **kwargs):
     try:
         response = s3.upload_file(Filename= fileOps.data_path_raw + file_name,
                                   Bucket=bucket_name,
-                                  Key=save_key)
+                                  Key=save_key + file_name)
         return True
     except Exception as e:
         logging.exception("error occured while uploading")
