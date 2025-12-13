@@ -19,7 +19,7 @@ from config import PROJECT_ROOT
 def upload_to_S3(fileOps:FileOps, file_name, **kwargs):
 
     bucket_name = "s3-giam-bucket-001"
-    save_key = "/NYC_taxi/raw/2025/01/"
+    save_key = "NYC_taxi/raw/2025/01/"
 
     s3 = boto3.client("s3")
 
@@ -44,7 +44,7 @@ def fetch_data(**kwargs):
 
         f.setup_data_paths()
         
-        urlretrieve(url, f.data_path_raw+file_name)
+        urlretrieve(url, os.path.join(f.data_path_raw, file_name))
         print(f.data_path_raw)
         if upload_to_S3(fileOps=f, file_name=file_name):
             print("successfully saved data")
