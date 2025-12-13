@@ -54,6 +54,10 @@ def upload_to_s3_processed(fileOps:FileOps, file_name, **kwargs):
         logging.exception("error occured while uploading")
         return False
 
+def upload_processed(**kwargs):
+    file_name = "yellow_tripdata_2025-01.parquet"
+    f = FileOps(PROJECT_ROOT)
+    upload_to_s3_processed(fileOps=f, file_name=file_name)
 
 def fetch_data(**kwargs):
 
@@ -120,6 +124,6 @@ with DAG(
         python_callable=fetch_data)
     t5 = PythonOperator(
         task_id="python_save_processed",
-        python_callable=upload_to_s3_processed)
+        python_callable=upload_processed)
 
     t4 >> t2 >> t5
