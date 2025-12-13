@@ -48,6 +48,7 @@ class FileOps:
 			return False
 	
 	def create_dummy_raw(self):
+		self.setup_data_paths()
 		try:
 			file=open(self.test_file_raw, mode="w")
 			file.write("col1,col2,col3")
