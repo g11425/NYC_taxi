@@ -8,7 +8,7 @@ class FileOps:
 	data_path_raw = "/data/raw/"
 	data_path_processed = "/data/processed/"
 
-	def __Init__(self, project_path):
+	def __init__(self, project_path):
 		self.project_path = project_path
 		self.check_for_paths()
 
