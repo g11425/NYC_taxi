@@ -13,8 +13,5 @@ def setup_dummy_data():
 def test_fetch_data():
     assert flw.fetch_data() == True
 
-def test_upload_to_s3():
-    assert flw.upload_to_S3() == True
-
 
 

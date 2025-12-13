@@ -7,7 +7,7 @@ import os
 
 def test_fetch_data():
     f = FileOps(PROJECT_ROOT)
-    if(f.check_raw_path):
+    if(f.check_raw_path()):
         shutil.rmtree(f.data_path_raw)
     file_name = "yellow_tripdata_2025-01.parquet"
     flw.fetch_data()
