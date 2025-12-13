@@ -17,7 +17,19 @@ def test_dummy_raw():
 	assert os.path.exists(f.get_test_raw_file_name_abs())
 	f.clean_dummy_raw()
 	assert os.path.exists(f.get_test_raw_file_name_abs()) == False
+
 	
+def test_dummy_processed():
+	f = FileOps(PROJECT_ROOT)
+	f.clean_dummy_processed()
+
+	f.create_dummy_processed()
+	for file in f.get_test_processed_file_names_abs():
+		assert os.path.exists(file)
+
+	f.clean_dummy_processed()
+	for file in f.get_test_processed_file_names_abs():
+		assert os.path.exists(file) == False
 
 
 

@@ -25,6 +25,17 @@ def set_up_dummy_raw():
     f.clean_dummy_raw()
 
 def test_upload_to_s3_raw(set_up_dummy_raw):
-	f = FileOps(PROJECT_ROOT)
+	f = set_up_dummy_raw
 	assert flw.fetch_data() == True
-	assert flw.upload_to_S3(fileOps=f, file_name = f.test_file_raw) == True
+	assert flw.upload_to_S3_raw(fileOps=f, file_name = f.test_file_raw) == True
+
+@pytest.fixture
+def set_up_dummy_processed():
+    f = FileOps(PROJECT_ROOT)
+    f.create_dummy_processed()
+    yield f
+    f.clean_dummy_processed()
+
+def test_upload_to_s3_processed(set_up_dummy_processed):
+    f = set_up_dummy_processed
+    assert flw.upload_to_s3_processed(fileOps= f, file_name="") == True

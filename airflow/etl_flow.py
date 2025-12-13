@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import logging
+import os.path
 from urllib import response
 
 # Operators; we need this to operate!
@@ -16,7 +17,7 @@ from airflow.FileOps import FileOps
 from config import PROJECT_ROOT
 
 
-def upload_to_S3(fileOps:FileOps, file_name, **kwargs):
+def upload_to_S3_raw(fileOps:FileOps, file_name, **kwargs):
 
     bucket_name = "s3-giam-bucket-001"
     save_key = "NYC_taxi/raw/2025/01/"
@@ -27,6 +28,27 @@ def upload_to_S3(fileOps:FileOps, file_name, **kwargs):
         response = s3.upload_file(Filename= os.path.join(fileOps.data_path_raw, file_name),
                                   Bucket=bucket_name,
                                   Key=save_key + file_name)
+        return True
+    except Exception as e:
+        logging.exception("error occured while uploading")
+        return False
+
+
+def upload_to_s3_processed(fileOps:FileOps, file_name, **kwargs):
+    bucket_name = "s3-giam-bucket-001"
+    save_key = "NYC_taxi/processed/2025/01/"
+
+    s3 = boto3.client("s3")
+
+    try:
+
+        for dir, sub_dir, files in os.walk(os.path.join(fileOps.data_path_processed,file_name)):
+            for file in files:
+                file_name = os.path.join(dir, file)
+                key = os.path.relpath(file_name,fileOps.data_path_processed)
+                response = s3.upload_file(Filename= file_name,
+                                          Bucket=bucket_name,
+                                          Key= key)
         return True
     except Exception as e:
         logging.exception("error occured while uploading")
@@ -46,7 +68,7 @@ def fetch_data(**kwargs):
         
         urlretrieve(url, os.path.join(f.data_path_raw, file_name))
         print(f.data_path_raw)
-        if upload_to_S3(fileOps=f, file_name=f.test_file_raw):
+        if upload_to_S3_raw(fileOps=f, file_name=f.test_file_raw):
             print("successfully saved data")
         else:
             print("failed. Data not saved to S3")
