@@ -2,8 +2,6 @@ import logging
 import os
 import os.path
 import shutil
-from tkinter import SEL
-
 
 class FileOps:
 	
