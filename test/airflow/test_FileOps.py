@@ -1,4 +1,5 @@
 from airflow.FileOps import FileOps
+import airflow.etl_flow as flw
 from config import PROJECT_ROOT
 import os
 
@@ -16,4 +17,6 @@ def test_dummy_raw():
 	assert os.path.exists(f.test_file_raw)
 	f.clean_dummy_raw()
 	assert os.path.exists(f.test_file_raw) == False
+
+
 
