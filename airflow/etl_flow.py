@@ -24,7 +24,7 @@ def upload_to_S3(fileOps:FileOps, file_name, **kwargs):
     s3 = boto3.client("s3")
 
     try:
-        response = s3.upload_file(Filename= fileOps.data_path_raw + file_name,
+        response = s3.upload_file(Filename= file_name,
                                   Bucket=bucket_name,
                                   Key=save_key + file_name)
         return True
@@ -46,7 +46,7 @@ def fetch_data(**kwargs):
         
         urlretrieve(url, os.path.join(f.data_path_raw, file_name))
         print(f.data_path_raw)
-        if upload_to_S3(fileOps=f, file_name=file_name):
+        if upload_to_S3(fileOps=f, file_name=os.path.join(f.data_path_raw, file_name)):
             print("successfully saved data")
         else:
             print("failed. Data not saved to S3")
