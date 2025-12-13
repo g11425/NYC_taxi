@@ -1,3 +1,4 @@
+import logging
 import os
 
 
@@ -7,7 +8,12 @@ class FileOps:
 	data_path_raw = "/data/raw/"
 	data_path_processed = "/data/processed/"
 
-	def check_for_paths():
+	def __Init__(self, project_path):
+		self.project_path = project_path
+		self.check_for_paths()
+
+
+	def check_for_paths(self):
 		
 		raw_path = self.project_path + self.data_path_raw
 		processed_path = self.project_path + data_path_processed
@@ -25,7 +31,4 @@ class FileOps:
 			logging.exception(e)
 			return False
 
-	def initialize(project_path):
-		self.project_path = project_path
-		self.check_for_paths()
 	
