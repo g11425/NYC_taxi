@@ -12,7 +12,7 @@ import os
 from urllib.request import urlretrieve
 import boto3
 
-from FileOps import FileOps
+from airflow.FileOps import FileOps
 from config import PROJECT_ROOT
 
 
@@ -45,7 +45,7 @@ def fetch_data(**kwargs):
         f.setup_data_paths()
         
         urlretrieve(url, f.data_path_raw+file_name)
-
+        print(f.data_path_raw)
         if upload_to_S3(fileOps=f, file_name=file_name):
             print("successfully saved data")
         else:
