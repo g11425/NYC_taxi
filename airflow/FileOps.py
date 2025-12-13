@@ -15,8 +15,8 @@ class FileOps:
 
 	def check_for_paths(self):
 		
-		raw_path = self.project_path + self.data_path_raw
-		processed_path = self.project_path + self.data_path_processed
+		self.raw_path = self.project_path + self.data_path_raw
+		self.processed_path = self.project_path + self.data_path_processed
 
 		try:
 
@@ -34,4 +34,15 @@ class FileOps:
 			logging.exception(e)
 			return False
 
+
+	def clear_data_paths(self):
+		try:
+			if os.path.exists(self.raw_path):
+				os.rmdir(self.raw_path)
+			if os.path.exists(self.processed_path):
+			    os.rmdir(self.processed_path)
+			return True
+		except Exception as e:
+			logging.exception(e)
+			return False
 	
