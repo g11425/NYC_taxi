@@ -16,7 +16,7 @@ class FileOps:
 	def check_for_paths(self):
 		
 		raw_path = self.project_path + self.data_path_raw
-		processed_path = self.project_path + data_path_processed
+		processed_path = self.project_path + self.data_path_processed
 
 		try:
 
