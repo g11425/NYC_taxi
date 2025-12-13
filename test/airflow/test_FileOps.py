@@ -14,9 +14,9 @@ def test_dummy_raw():
 	if (os.path.exists(f.get_test_raw_file_name_abs())):
 		f.clean_dummy_raw()
 	f.create_dummy_raw()
-	assert os.path.exists(f.test_file_raw)
+	assert os.path.exists(f.get_test_raw_file_name_abs())
 	f.clean_dummy_raw()
-	assert os.path.exists(f.test_file_raw) == False
+	assert os.path.exists(f.get_test_raw_file_name_abs()) == False
 
 
 
