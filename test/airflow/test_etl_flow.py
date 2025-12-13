@@ -12,7 +12,7 @@ def test_fetch_data():
     file_name = "yellow_tripdata_2025-01.parquet"
     flw.fetch_data()
     full_file_name = os.path.join( f.data_path_raw, file_name)
-    assert os.path.exists(full_file_name)
+    assert os.path.exists(full_file_name) == True
 
 def test_upload_to_s3_raw():
 	f = FileOps(PROJECT_ROOT)
