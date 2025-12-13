@@ -45,7 +45,7 @@ def upload_to_s3_processed(fileOps:FileOps, file_name, **kwargs):
         for dir, sub_dir, files in os.walk(os.path.join(fileOps.data_path_processed,file_name)):
             for file in files:
                 file_name = os.path.join(dir, file)
-                key = os.path.relpath(file_name,fileOps.data_path_processed)
+                key = os.path.join(save_key, os.path.relpath(file_name,fileOps.data_path_processed))
                 response = s3.upload_file(Filename= file_name,
                                           Bucket=bucket_name,
                                           Key= key)
