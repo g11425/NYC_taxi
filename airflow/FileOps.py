@@ -1,33 +1,32 @@
 import logging
 import os
+import shutil
 
 
 class FileOps:
 	
-	project_path = ""
 	data_path_raw = "/data/raw/"
 	data_path_processed = "/data/processed/"
 
 	def __init__(self, project_path):
 		self.project_path = project_path
-		self.check_for_paths()
+		self.data_path = os.path.join(project_path, "data")
+		self.data_path_raw = os.path.join(self.data_path, "raw")
+		self.data_path_processed = os.path.join(self.data_path, "processed")
 
 
 	def check_for_paths(self):
 		
-		self.raw_path = self.project_path + self.data_path_raw
-		self.processed_path = self.project_path + self.data_path_processed
-
 		try:
 
-			if not (os.path.exists(self.project_path + "/data")):
-				os.mkdir(self.project_path + "/data")
+			if not (os.path.exists(self.data_path)):
+				os.mkdir(self.data_path)
 
-			if not (os.path.exists(raw_path)):
-				os.mkdir(raw_path)
+			if not (os.path.exists(self.data_path_raw)):
+				os.mkdir(self.data_path_raw)
 
-			if not (os.path.exists(processed_path)):
-				os.mkdir(processed_path)
+			if not (os.path.exists(self.data_path_processed)):
+				os.mkdir(self.data_path_processed)
 			return True
 
 		except Exception as e:
@@ -37,11 +36,12 @@ class FileOps:
 
 	def clear_data_paths(self):
 		try:
-			if os.path.exists(self.raw_path):
-				os.rmdir(self.raw_path)
-			if os.path.exists(self.processed_path):
-			    os.rmdir(self.processed_path)
+			if os.path.exists(self.data_path_raw):
+				shutil.rmtree(self.data_path_raw)
+			if os.path.exists(self.data_path_processed):
+				shutil.rmtree(self.data_path_processed)
 			return True
+
 		except Exception as e:
 			logging.exception(e)
 			return False
