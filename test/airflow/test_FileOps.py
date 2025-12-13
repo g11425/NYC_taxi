@@ -11,7 +11,7 @@ def test_initiate_FileOps():
 
 def test_dummy_raw():
 	f = FileOps(PROJECT_ROOT)
-	if (os.path.exists(f.test_file_raw)):
+	if (os.path.exists(f.get_test_raw_file_name_abs()):
 		f.clean_dummy_raw()
 	f.create_dummy_raw()
 	assert os.path.exists(f.test_file_raw)
