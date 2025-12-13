@@ -23,9 +23,9 @@ def upload_to_S3(**kwargs):
 
     s3 = boto3.client("s3")
     try:
-        response = s3.upload_file(filename=file_path_raw + file_name,
-                                  bucket=bucket_name,
-                                  key=save_key)
+        response = s3.upload_file(Filename=file_path_raw + file_name,
+                                  Bucket=bucket_name,
+                                  Key=save_key)
         return True
     except Exception as e:
         logging.exception("error occured while uploading")
