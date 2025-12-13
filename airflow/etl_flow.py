@@ -74,9 +74,10 @@ def fetch_data(**kwargs):
         print(f.data_path_raw)
         if upload_to_S3_raw(fileOps=f, file_name=file_name):
             print("successfully saved data")
+            return True
         else:
             print("failed. Data not saved to S3")
-        return True
+        return False
     except Exception as e:
         logging.exception("fetch_data: failed")
         return False
