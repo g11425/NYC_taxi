@@ -20,6 +20,9 @@ class FileOps:
 
 		try:
 
+			if not (os.path.exists(self.project_path + "/data")):
+				os.mkdir(self.project_path + "/data")
+
 			if not (os.path.exists(raw_path)):
 				os.mkdir(raw_path)
 
