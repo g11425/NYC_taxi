@@ -4,6 +4,7 @@ from airflow.FileOps import FileOps
 
 import shutil
 import os
+import pytest
 
 def test_fetch_data():
     f = FileOps(PROJECT_ROOT)
@@ -14,7 +15,16 @@ def test_fetch_data():
     full_file_name = os.path.join( f.data_path_raw, file_name)
     assert os.path.exists(full_file_name) == True
 
-def test_upload_to_s3_raw():
+
+
+@pytest.fixture
+def set_up_dummy_raw():
+    f = FileOps(PROJECT_ROOT)
+    f.create_dummy_raw()
+    yield f
+    f.clean_dummy_raw()
+
+def test_upload_to_s3_raw(set_up_dummy_raw):
 	f = FileOps(PROJECT_ROOT)
 	assert flw.fetch_data() == True
-	assert flw.upload_to_S3(fileOps=f, file_name = "yellow_tripdata_2025-01.parquet") == True
+	assert flw.upload_to_S3(fileOps=f, file_name = f.test_file_raw) == True
