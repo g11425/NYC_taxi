@@ -62,7 +62,7 @@ class FileOps:
 	def clean_dummy_raw(self):
 		try:
 			if os.path.exists(self.test_file_raw):
-				shutil.rmtree(self.test_file_raw)
+				os.remove(self.test_file_raw)
 				return True
 		except Exception as e:
 			logging.exception(e)
