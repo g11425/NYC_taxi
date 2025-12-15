@@ -47,11 +47,11 @@ def test_upload_to_s3(set_up_dummy_raw):
 
 def test_delete_s3(set_up_dummy_raw):
     f = set_up_dummy_raw
-    flw.delete_s3(tc.S3_TEST_BUCKET, tc.S3_TEST_RAW_KEY, f.test_file_raw)
+    flw.delete_s3(tc.S3_TEST_BUCKET, tc.S3_TEST_RAW_KEY + f.test_file_raw)
     assert flw.check_if_exists_s3(tc.S3_TEST_BUCKET, tc.S3_TEST_RAW_KEY + f.test_file_raw) == False
 
 
 def test_fetch_to_s3():
     flw.fetch_to_s3(tc.S3_RAW_TEST_FILE, tc.TEST_RAW_FILE_URL, tc.S3_TEST_BUCKET, tc.S3_TEST_RAW_KEY)
     assert flw.check_if_exists_s3(tc.S3_TEST_BUCKET, tc.S3_RAW_TEST_FILE_KEY)
-    flw.delete_s3()
+    flw.delete_s3(tc.S3_TEST_BUCKET, tc.S3_RAW_TEST_FILE_KEY)
