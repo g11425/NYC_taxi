@@ -77,7 +77,7 @@ def upload_processed(**kwargs):
 def check_if_exists_s3(bucket, key):
     s3 = boto3.client("s3")
     try:
-        s3.head_object(bucket=bucket, key=key)
+        s3.head_object(Bucket=bucket, Key=key)
         return True
     except ClientError as e:
         if e.response["Error"]["Code"] == "404":
