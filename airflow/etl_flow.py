@@ -14,7 +14,8 @@ from urllib.request import urlretrieve
 import boto3
 from botocore.exceptions import ClientError
 import requests
-from airflow.providers.amazon.aws.operators.redshift_sql import RedshfitSQLOperator
+# from airflow.providers.amazon.aws.operators.redshift_sql import RedshfitSQLOperator
+from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
 
 from airflow.FileOps import FileOps
 from config import PROJECT_ROOT
@@ -196,16 +197,25 @@ with DAG(
         task_id="python_save_processed",
         python_callable=upload_processed)
 
-    t6 = RedshfitSQLOperator(
+    # t6 = RedshfitSQLOperator(
+    #     task_id="copy_to_redshfit",
+    #     redshift_conn_id="redshfit_default",
+    #     aws_conn_id="aws_default",
+    #     sql=f"""
+    #     COPY dev.test_table
+    #     FROM 's3-giam-bucket-001/NYC_taxi/processed/2025/01/'
+    #     FORMAT AS PARQUET
+    #     STATUPDATE ON;
+    #     """
+    #     )
+    t7 = S3ToRedshiftOperator(
         task_id="copy_to_redshfit",
         redshift_conn_id="redshfit_default",
         aws_conn_id="aws_default",
-        sql=f"""
-        COPY dev.test_table
-        FROM 's3-giam-bucket-001/NYC_taxi/processed/2025/01/'
-        FORMAT AS PARQUET
-        STATUPDATE ON;
-        """
+        table="dev.test_table",
+        s3_bucket="s3-giam-bucket-001",
+        s3_key="NYC_taxi/processed/2025/01/",
+        method="APPEND"
         )
 
-    t4 >> t2 >> t5 >> t6
+    t4 >> t2 >> t5 >> t7
