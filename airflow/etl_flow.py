@@ -212,11 +212,11 @@ with DAG(
         task_id="copy_to_redshfit",
         redshift_conn_id="redshfit_default",
         aws_conn_id="aws_default",
-        table="dev.test_table",
+        table="test_table",
         s3_bucket="s3-giam-bucket-001",
         s3_key="NYC_taxi/raw/2025/01/",
         method="APPEND",
-        schema="public"
+        schema="dev"
         )
 
     t4 >> t2 >> t5 >> t7
