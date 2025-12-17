@@ -248,4 +248,4 @@ with DAG(
         python_callable=task_fetch_to_s3)
 
 
-    t9 >> t8 >> t9 #>> t7
+    t9 >> t8 #>> t7
