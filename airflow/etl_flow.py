@@ -239,7 +239,7 @@ with DAG(
 
     t8 = EmrAddStepsOperator(
         task_id="add_ETL_step",
-        job_flow_id="j-JIWJRN0U0SKW",
+        job_flow_id="j-294F5S1L47QLY",
         steps=SPARK_STEPS,
         region_name="eu-north-1"
         )
