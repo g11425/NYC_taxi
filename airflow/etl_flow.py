@@ -240,7 +240,8 @@ with DAG(
     t8 = EmrAddStepsOperator(
         task_id="add_ETL_step",
         job_flow_id="j-JIWJRN0U0SKW",
-        steps=SPARK_STEPS
+        steps=SPARK_STEPS,
+        region_name="eu-north-1"
         )
 
     t9 = PythonOperator(
