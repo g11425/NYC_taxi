@@ -16,7 +16,7 @@ from botocore.exceptions import ClientError
 import requests
 # from airflow.providers.amazon.aws.operators.redshift_sql import RedshfitSQLOperator
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
-from airflow.providers.amazon.operators.emr import EmrAddStepsOperator
+from airflow.providers.amazon.aws.operators.emr import EmrAddStepsOperator
 
 from airflow.FileOps import FileOps
 from config import PROJECT_ROOT
