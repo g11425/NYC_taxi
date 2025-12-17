@@ -192,9 +192,9 @@ with DAG(
     #     task_id = "save_processed",
     #     bash_command="aws s3 cp /home/ec2-user/NYC_taxi/data/processed/ s3://s3-giam-bucket-001/NYC_taxi/processed/2025/01/ --recursive"
     #     )
-    t4 = PythonOperator(
-        task_id="python_fetch_data",
-        python_callable=fetch_data)
+    # t4 = PythonOperator(
+    #     task_id="python_fetch_data",
+    #     python_callable=fetch_data)
 
     # t5 = PythonOperator(
     #     task_id="python_save_processed",
