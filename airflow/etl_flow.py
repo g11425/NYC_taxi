@@ -16,10 +16,13 @@ from botocore.exceptions import ClientError
 import requests
 # from airflow.providers.amazon.aws.operators.redshift_sql import RedshfitSQLOperator
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
+from airflow.providers.amazon.operators.emr import EmrAddStepsOperator
 
 from airflow.FileOps import FileOps
 from config import PROJECT_ROOT
 
+
+S3_EMR_PY_SCRIPT = "s3://s3-giam-bucket-001/NYC_taxi/etl_spark_emr.py"
 
 def upload_to_S3_raw(fileOps:FileOps, file_name, **kwargs):
 
@@ -181,10 +184,10 @@ with DAG(
 
     #     aws s3 cp /home/ec2-user/NYC_taxi/data/raw/ s3://s3-giam-bucket-001/NYC_taxi/raw/2025/01/ --recursive"""
     #     )
-    t2 = BashOperator(
-        task_id = "perform_etl",
-        bash_command="spark-submit /home/ec2-user/NYC_taxi/pyspark/etl_spark.py"
-        )
+    # t2 = BashOperator(
+    #     task_id = "perform_etl",
+    #     bash_command="spark-submit /home/ec2-user/NYC_taxi/pyspark/etl_spark.py"
+    #     )
     # t3 = BashOperator(
     #     task_id = "save_processed",
     #     bash_command="aws s3 cp /home/ec2-user/NYC_taxi/data/processed/ s3://s3-giam-bucket-001/NYC_taxi/processed/2025/01/ --recursive"
@@ -193,9 +196,9 @@ with DAG(
         task_id="python_fetch_data",
         python_callable=fetch_data)
 
-    t5 = PythonOperator(
-        task_id="python_save_processed",
-        python_callable=upload_processed)
+    # t5 = PythonOperator(
+    #     task_id="python_save_processed",
+    #     python_callable=upload_processed)
 
     # t6 = RedshfitSQLOperator(
     #     task_id="copy_to_redshfit",
@@ -208,16 +211,41 @@ with DAG(
     #     STATUPDATE ON;
     #     """
     #     )
-    t7 = S3ToRedshiftOperator(
-        task_id="copy_to_redshfit",
-        redshift_conn_id="redshfit_default",
-        aws_conn_id="aws_default",
-        table="test_table",
-        s3_bucket="s3-giam-bucket-001",
-        s3_key="NYC_taxi/raw/2025/01/",
-        method="APPEND",
-        schema="public",
-        copy_options=["parquet"]
+
+    # t7 = S3ToRedshiftOperator(
+    #     task_id="copy_to_redshfit",
+    #     redshift_conn_id="redshfit_default",
+    #     aws_conn_id="aws_default",
+    #     table="test_table",
+    #     s3_bucket="s3-giam-bucket-001",
+    #     s3_key="NYC_taxi/raw/2025/01/",
+    #     method="REPLACE", #APPEND. UPSERT, REPLACE
+    #     schema="public",
+    #     copy_options=["parquet"]
+    #     )
+
+    SPARK_STEPS = [
+        {
+            'Name':'Spark_ETL_EMR',
+            'ActionOnFailure':"CONTINUE",
+            'HadoopJarStep':{
+                'Jar':'command-runner.jar',
+                'Args':['spark-submit', 
+                        '--deploy-mode', 'cluster',
+                        S3_EMR_PY_SCRIPT]
+                }
+            }
+        ]
+
+    t8 = EmrAddStepsOperator(
+        task_id="add_ETL_step",
+        job_flow_id="j-JIWJRN0U0SKW",
+        steps=SPARK_STEPS
         )
 
-    t4 >> t2 >> t5 >> t7
+    t9 = PythonOperator(
+        task_id="fetch_data_to_s3",
+        python_callable=task_fetch_to_s3)
+
+
+    t9 >> t8 >> t9 #>> t7
