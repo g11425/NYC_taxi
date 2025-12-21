@@ -283,6 +283,7 @@ with DAG(
         # EmrAddStepsOperator returns a LIST of IDs, so we grab the first one [0]
         step_id="{{ task_instance.xcom_pull(task_ids='add_step', key='return_value')[0] }}",
         aws_conn_id="aws_default",
+        region_name="eu-north-1"
     )
 
     # Task D: Terminate Cluster (Cleanup)
@@ -291,6 +292,7 @@ with DAG(
         job_flow_id="{{ task_instance.xcom_pull(task_ids='create_cluster', key='return_value') }}",
         aws_conn_id="aws_default",
         trigger_rule="all_done", # Run even if the step failed
+        region_name="eu-north-1"
     )
 
 
