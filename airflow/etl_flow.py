@@ -237,8 +237,8 @@ with DAG(
             "KeepJobFlowAliveWhenNoSteps": True, # Important: Don't kill cluster before we add steps!
             "TerminationProtected": False,
         },
-        "JobFlowRole": "EMR_EC2_role",
-        "ServiceRole": "EC2_NYC_taxi",
+        "JobFlowRole": "EC2_NYC_taxi",
+        "ServiceRole": "EMR_EC2_role",
     }
 
     create_cluster = EmrCreateJobFlowOperator(
