@@ -238,7 +238,7 @@ with DAG(
             "TerminationProtected": False,
         },
         "JobFlowRole": "EC2_NYC_taxi",
-        "ServiceRole": "EMR_EC2_role",
+        "ServiceRole": "EMR_service",
     }
 
     create_cluster = EmrCreateJobFlowOperator(
