@@ -16,7 +16,8 @@ from botocore.exceptions import ClientError
 import requests
 # from airflow.providers.amazon.aws.operators.redshift_sql import RedshfitSQLOperator
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
-from airflow.providers.amazon.aws.operators.emr import EmrAddStepsOperator
+from airflow.providers.amazon.aws.sensors.emr import EmrStepSensor
+from airflow.providers.amazon.aws.operators.emr import EmrAddStepsOperator, EmrCreateJobFlowOperator, EmrTerminateJobFlowOperator, 
 
 from airflow.FileOps import FileOps
 from config import PROJECT_ROOT
@@ -212,17 +213,43 @@ with DAG(
     #     """
     #     )
 
-    # t7 = S3ToRedshiftOperator(
-    #     task_id="copy_to_redshfit",
-    #     redshift_conn_id="redshfit_default",
-    #     aws_conn_id="aws_default",
-    #     table="test_table",
-    #     s3_bucket="s3-giam-bucket-001",
-    #     s3_key="NYC_taxi/raw/2025/01/",
-    #     method="REPLACE", #APPEND. UPSERT, REPLACE
-    #     schema="public",
-    #     copy_options=["parquet"]
-    #     )
+    t7 = S3ToRedshiftOperator(
+        task_id="copy_to_redshfit",
+        redshift_conn_id="redshfit_default",
+        aws_conn_id="aws_default",
+        table="test_table",
+        s3_bucket="s3-giam-bucket-001",
+        s3_key="NYC_taxi/raw/2025/01/",
+        method="REPLACE", #APPEND. UPSERT, REPLACE
+        schema="public",
+        copy_options=["parquet"]
+        )
+
+    JOB_FLOW_OVERRIDES = {
+        "Name": "NYC_taxi_cluster",
+        "ReleaseLabel": "emr-7.12.0",
+        "Applications": [{"Name": "Spark"}],
+        "Instances": {
+            "InstanceGroups": [
+                {"Name": "Master", "Market": "ON_DEMAND", "InstanceRole": "MASTER", "InstanceType": "r8g.xlarge", "InstanceCount": 1},
+                {"Name": "Core", "Market": "ON_DEMAND", "InstanceRole": "CORE", "InstanceType": "r8g.xlarge", "InstanceCount": 2},
+            ],
+            "KeepJobFlowAliveWhenNoSteps": True, # Important: Don't kill cluster before we add steps!
+            "TerminationProtected": False,
+        },
+        "JobFlowRole": "EMR_EC2_role",
+        "ServiceRole": "EC2_NYC_taxi",
+    }
+
+    create_cluster = EmrCreateJobFlowOperator(
+        task_id="create_cluster",
+        job_flow_overrides=JOB_FLOW_OVERRIDES,
+        aws_conn_id="aws_default"
+        # emr_conn_id="emr_default",
+    )
+
+    # Task B: Add the Step (points to Task A for Cluster ID)
+
 
     SPARK_STEPS = [
         {
@@ -237,16 +264,45 @@ with DAG(
             }
         ]
 
-    t8 = EmrAddStepsOperator(
-        task_id="add_ETL_step",
-        job_flow_id="j-294F5S1L47QLY",
+
+    add_step = EmrAddStepsOperator(
+        task_id="add_step",
+        job_flow_id="{{ task_instance.xcom_pull(task_id='create_cluster', key='return_value') }}",
         steps=SPARK_STEPS,
+        aws_conn_id="aws_default",
         region_name="eu-north-1"
-        )
+
+    )
+
+    # Task C: Wait for Step Completion (points to Task B for Step ID)
+    wait_for_step = EmrStepSensor(
+        task_id="wait_for_step",
+        job_flow_id="{{ task_instance.xcom_pull(task_id='create_cluster', key='return_value') }}",
+        # EmrAddStepsOperator returns a LIST of IDs, so we grab the first one [0]
+        step_id="{{ task_instance.xcom_pull(task_id='add_step', key='return_value')[0] }}",
+        aws_conn_id="aws_default",
+    )
+
+    # Task D: Terminate Cluster (Cleanup)
+    terminate_cluster = EmrTerminateJobFlowOperator(
+        task_id="terminate_cluster",
+        job_flow_id="{{ task_instance.xcom_pull(task_id='create_cluster', key='return_value') }}",
+        aws_conn_id="aws_default",
+        trigger_rule="all_done", # Run even if the step failed
+    )
+
+
+    # t8 = EmrAddStepsOperator(
+    #     task_id="add_ETL_step",
+    #     job_flow_id="j-294F5S1L47QLY",
+    #     steps=SPARK_STEPS,
+    #     region_name="eu-north-1"
+    #     )
+
 
     t9 = PythonOperator(
         task_id="fetch_data_to_s3",
         python_callable=task_fetch_to_s3)
 
 
-    t9 >> t8 #>> t7
+    t9 >> create_cluster >> add_step >> wait_for_step >> terminate_cluster >> t7
