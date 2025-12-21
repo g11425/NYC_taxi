@@ -115,13 +115,14 @@ def fetch_to_s3(file_name, url, bucket_name, save_key):
         with requests.get(url=url, stream=True) as r:
             r.raise_for_status()
             s3.upload_fileobj(
-                f.raw,
+                r.raw,
                 bucket_name,
                 save_key + file_name
                 )
 
     except Exception as e:
         logging.exception(e)
+        raise
 
 def task_fetch_to_s3(**kwargs):
     file_name = "yellow_tripdata_2025-01.parquet"
