@@ -244,7 +244,9 @@ with DAG(
     create_cluster = EmrCreateJobFlowOperator(
         task_id="create_cluster",
         job_flow_overrides=JOB_FLOW_OVERRIDES,
-        aws_conn_id="aws_default"
+        aws_conn_id="aws_default",
+        region_name="eu-north-1"
+
         # emr_conn_id="emr_default",
     )
 
