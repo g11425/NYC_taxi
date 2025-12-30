@@ -25,22 +25,6 @@ from config import PROJECT_ROOT
 
 S3_EMR_PY_SCRIPT = "s3://s3-giam-bucket-001/NYC_taxi/etl_spark_emr.py"
 
-def upload_to_S3_raw(fileOps:FileOps, file_name, **kwargs):
-
-    bucket_name = "s3-giam-bucket-001"
-    save_key = "NYC_taxi/raw/2025/01/"
-
-    s3 = boto3.client("s3")
-
-
-    try:
-        response = s3.upload_file(Filename= os.path.join(fileOps.data_path_raw, file_name),
-                                  Bucket=bucket_name,
-                                  Key=save_key + file_name)
-        return True
-    except Exception as e:
-        logging.exception("error occured while uploading")
-        return False
 
 def upload_to_s3(bucket_name, save_key, file_name, file_path):
     
@@ -55,30 +39,6 @@ def upload_to_s3(bucket_name, save_key, file_name, file_path):
         logging.exception("error occured while uploading")
         return False
 
-def upload_to_s3_processed(fileOps:FileOps, file_name, **kwargs):
-    bucket_name = "s3-giam-bucket-001"
-    save_key = "NYC_taxi/processed/2025/01/"
-
-    s3 = boto3.client("s3")
-
-    try:
-
-        for dir, sub_dir, files in os.walk(os.path.join(fileOps.data_path_processed,file_name)):
-            for file in files:
-                file_name = os.path.join(dir, file)
-                key = os.path.join(save_key, os.path.relpath(file_name,fileOps.data_path_processed))
-                response = s3.upload_file(Filename= file_name,
-                                          Bucket=bucket_name,
-                                          Key= key)
-        return True
-    except Exception as e:
-        logging.exception("error occured while uploading")
-        return False
-
-def upload_processed(**kwargs):
-    file_name = "yellow_tripdata_2025-01.parquet"
-    f = FileOps(PROJECT_ROOT)
-    upload_to_s3_processed(fileOps=f, file_name=file_name)
 
 def check_if_exists_s3(bucket, key):
     s3 = boto3.client("s3")
@@ -132,29 +92,6 @@ def task_fetch_to_s3(**kwargs):
     save_key = "NYC_taxi/raw/2025/01/"
     fetch_to_s3(file_name, url, bucket_name, save_key)
 
-
-def fetch_data(**kwargs):
-
-    file_name = "yellow_tripdata_2025-01.parquet"
-    url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet'
-
-    f = FileOps(PROJECT_ROOT)
-
-    try:
-
-        f.setup_data_paths()
-        
-        urlretrieve(url, os.path.join(f.data_path_raw, file_name))
-        print(f.data_path_raw)
-        if upload_to_S3_raw(fileOps=f, file_name=file_name):
-            print("successfully saved data")
-            return True
-        else:
-            print("failed. Data not saved to S3")
-        return False
-    except Exception as e:
-        logging.exception("fetch_data: failed")
-        return False
 
 
 
@@ -311,3 +248,76 @@ with DAG(
 
 
     t9 >> create_cluster >> add_step >> wait_for_step >> terminate_cluster >> t7
+
+
+
+def upload_to_S3_raw(fileOps:FileOps, file_name, **kwargs):
+
+
+    bucket_name = "s3-giam-bucket-001"
+    save_key = "NYC_taxi/raw/2025/01/"
+
+    s3 = boto3.client("s3")
+
+
+    try:
+        response = s3.upload_file(Filename= os.path.join(fileOps.data_path_raw, file_name),
+                                  Bucket=bucket_name,
+                                  Key=save_key + file_name)
+        return True
+    except Exception as e:
+        logging.exception("error occured while uploading")
+        return False
+
+
+def upload_to_s3_processed(fileOps:FileOps, file_name, **kwargs):
+    bucket_name = "s3-giam-bucket-001"
+    save_key = "NYC_taxi/processed/2025/01/"
+
+    s3 = boto3.client("s3")
+
+    try:
+
+        for dir, sub_dir, files in os.walk(os.path.join(fileOps.data_path_processed,file_name)):
+            for file in files:
+                file_name = os.path.join(dir, file)
+                key = os.path.join(save_key, os.path.relpath(file_name,fileOps.data_path_processed))
+                response = s3.upload_file(Filename= file_name,
+                                          Bucket=bucket_name,
+                                          Key= key)
+        return True
+    except Exception as e:
+        logging.exception("error occured while uploading")
+        return False
+
+
+def upload_processed(**kwargs):
+    file_name = "yellow_tripdata_2025-01.parquet"
+    f = FileOps(PROJECT_ROOT)
+    upload_to_s3_processed(fileOps=f, file_name=file_name)
+
+
+
+def fetch_data(**kwargs):
+
+    file_name = "yellow_tripdata_2025-01.parquet"
+    url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet'
+
+    f = FileOps(PROJECT_ROOT)
+
+    try:
+
+        f.setup_data_paths()
+        
+        urlretrieve(url, os.path.join(f.data_path_raw, file_name))
+        print(f.data_path_raw)
+        if upload_to_S3_raw(fileOps=f, file_name=file_name):
+            print("successfully saved data")
+            return True
+        else:
+            print("failed. Data not saved to S3")
+        return False
+    except Exception as e:
+        logging.exception("fetch_data: failed")
+        return False
+
