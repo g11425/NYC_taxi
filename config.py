@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     S3_TEST_RAW_KEY:str = "NYC_taxi/raw/2025/01/"
     S3_RAW_TEST_FILE:str ="yellow_tripdata_2025-01.parquet"
     TEST_RAW_FILE_URL:str ='https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet'
-    S3_BUCKET:str = "s3:s3-giam-bucket-001"
+    S3_BUCKET:str = "s3://s3-giam-bucket-001"
     LOCAL_RAW_DATA_PATH:str = "/home/ec2-user/NYC_taxi/data/raw/"
     LOCAL_PRCSD_DATA_PATH:str = "/home/ec2-user/NYC_taxi/data/processed/"
 
