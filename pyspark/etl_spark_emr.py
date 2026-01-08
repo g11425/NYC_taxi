@@ -102,7 +102,7 @@ udf_rate_code = f.udf(functools.partial(lookup_payment, rate_code.value))
 udf_taxi_zone = f.udf(functools.partial(lookup_payment, taxi_zone.value))
 udf_vendor_name = f.udf(functools.partial(lookup_payment, vendor_name.value))
 
-df = df.withColumn("payment_type", udf_payment_type(f.col("event")))\
+df = df.withColumn("payment_type", udf_payment_type(f.col("payment_code")))\
     .withColumn("rate_type", udf_rate_code(f.col("RatecodeID")))\
     .withColumn("PULocation", udf_taxi_zone(f.col("PULocationID")))\
     .withColumn("DOLocation", udf_taxi_zone(f.col("DOLocationID")))\
