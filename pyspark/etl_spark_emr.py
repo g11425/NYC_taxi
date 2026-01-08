@@ -35,6 +35,7 @@ def parse_lookups(file_name):
         line = f.readline()
         for line in f:
             arr = line.split(",")
+            print(arr)
             out[int(arr[0])] = arr[1]            
     return out
 
