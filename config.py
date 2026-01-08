@@ -48,32 +48,32 @@ class Settings(BaseSettings):
 
 
 
-    @computed_field
+    @computed_field(return_type=str)
     @property
     def S3_RAW_TEST_FILE_KEY(self):
         return os.path.join( self.S3_TEST_RAW_KEY, self.S3_RAW_TEST_FILE)
     
-    @computed_field
+    @computed_field(return_type=str)
     @property
     def S3_STORE_PREFIX(self):
         return os.path.join( self.S3_BUCKET , self.S3_ETL_PY_PREFIX)
 
-    @computed_field
+    @computed_field(return_type=str)
     @property
     def S3_PAYMENT_TYPE_FILE(self):
         return os.path.join(self.S3_STORE_PREFIX, self.PAYMENT_TYPE_FILE)
 
-    @computed_field
+    @computed_field(return_type=str)
     @property
     def S3_RATE_CODE_FILE(self):
         return os.path.join(self.S3_STORE_PREFIX, self.RATE_CODE_FILE)
 
-    @computed_field
+    @computed_field(return_type=str)
     @property
     def S3_TAXI_ZONE_FILE(self):
         return os.path.join(self.S3_STORE_PREFIX, self.TAXI_ZONE_FILE)
 
-    @computed_field
+    @computed_field(return_type=str)
     @property
     def S3_VENDOR_LOOKUP_FILE(self):
         return os.path.join(self.S3_STORE_PREFIX, self.VENDOR_LOOKUP_FILE)
