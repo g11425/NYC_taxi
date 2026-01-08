@@ -80,7 +80,7 @@ class Settings(BaseSettings):
 
 
 
-    model_config = SettingsConfigDict(env_file="conf/.env", env_file_encoding="utf-8", extra='allow')
+    model_config = SettingsConfigDict(env_file="conf/env", env_file_encoding="utf-8", extra='allow')
     
 etl_settings = Settings()
 
