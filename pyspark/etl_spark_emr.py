@@ -5,7 +5,7 @@ import os
 import functools
 from pyspark.sql.types import (StructType, StructField, StringType, LongType, IntegerType,
                                DoubleType, TimestampType)
-
+from smart_open import open
 
 
 
