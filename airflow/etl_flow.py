@@ -168,6 +168,7 @@ with DAG(
         "Name": "NYC_taxi_cluster",
         "ReleaseLabel": "emr-7.12.0",
         "Applications": [{"Name": "Spark"}],
+        "LogUrl":"s3://aws-logs-478106802666-eu-north-1/logs/",
         "Instances": {
             "InstanceGroups": [
                 {"Name": "Master", "Market": "ON_DEMAND", "InstanceRole": "MASTER", "InstanceType": "r8g.xlarge", "InstanceCount": 1},
