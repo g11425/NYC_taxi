@@ -78,10 +78,9 @@ class Settings(BaseSettings):
     def S3_VENDOR_LOOKUP_FILE(self):
         return os.path.join(self.S3_STORE_PREFIX, self.VENDOR_LOOKUP_FILE)
 
-    env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf/env")
 
 
-    model_config = SettingsConfigDict(env_file=env_file, env_file_encoding="utf-8", extra='allow')
+    model_config = SettingsConfigDict(env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf/env"), env_file_encoding="utf-8", extra='allow')
     
 etl_settings = Settings()
 
