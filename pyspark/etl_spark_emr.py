@@ -77,7 +77,7 @@ import_config = {
     "mode":"FAILFAST"
     }
 
-df = spark.read.schema(trips_schema).options(import_config).parquet(raw_file)
+df = spark.read.schema(trips_schema).options(**import_config).parquet(raw_file)
 df.printSchema()
 df.show(10)
 df = df.filter((f.col("fare_amount") != 0) & (f.col("PULocationID") != 0) & (f.col("DOLocationID") != 0))
