@@ -25,11 +25,11 @@ class Settings(BaseSettings):
     PROJECT_ROOT:str = os.path.dirname(os.path.abspath(__file__))
     EXEC_ENV:str = "emr" # emr or local
 
-    S3_TEST_BUCKET:str = "s3-giam-bucket-001"
+    S3_TEST_BUCKET:str = "s3-giam-bucket-002"
     S3_TEST_RAW_KEY:str = "NYC_taxi/raw/2025/01/"
     S3_RAW_TEST_FILE:str ="yellow_tripdata_2025-01.parquet"
     TEST_RAW_FILE_URL:str ='https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet'
-    S3_BUCKET:str = "s3://s3-giam-bucket-001"
+    S3_BUCKET_SIMPLE:str = "s3-giam-bucket-002"
     LOCAL_RAW_DATA_PATH:str = "/home/ec2-user/NYC_taxi/data/raw/"
     LOCAL_PRCSD_DATA_PATH:str = "/home/ec2-user/NYC_taxi/data/processed/"
 
@@ -43,9 +43,14 @@ class Settings(BaseSettings):
     RATE_CODE_FILE:str = "ratecode_lookup.csv"
     TAXI_ZONE_FILE:str = "taxi_zone_lookup.csv"
     VENDOR_LOOKUP_FILE:str = "vendor_lookup.csv"
-    S3_EXTRAS:str = "/NYC_taxi/processed/2025/01/extras"
+    S3_EXTRAS:str = "NYC_taxi/processed/2025/01/extras"
     LOCAL_EXTRAS:str = "extras"
+    S3_EMR_BOOTSTRAP_SCRIPT_KEY:str = "NYC_taxi/emr_bootstrap.sh"
 
+    @computed_field(return_type=str)
+    @property
+    def S3_BUCKET(self):
+        return "s3://" + self.S3_BUCKET_SIMPLE
 
 
     @computed_field(return_type=str)
@@ -78,9 +83,18 @@ class Settings(BaseSettings):
     def S3_VENDOR_LOOKUP_FILE(self):
         return os.path.join(self.S3_STORE_PREFIX, self.VENDOR_LOOKUP_FILE)
 
+    @computed_field(return_type=str)
+    @property
+    def S3_CONF_FILE(self):
+        return os.path.join(self.S3_BUCKET, self.S3_ETL_PY_PREFIX, "env")
+
+    @computed_field(return_type=str)
+    @property
+    def S3_EMR_PY_FILE(self):
+        return os.path.join(self.S3_BUCKET, self.S3_ETL_PY_PREFIX, "config.py")
 
 
-    model_config = SettingsConfigDict(env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf/env"), env_file_encoding="utf-8", extra='allow')
+    model_config = SettingsConfigDict(env_file=os.path.join("~/NYC_taxi/conf/", "env"), env_file_encoding="utf-8", extra='allow')
     
 etl_settings = Settings()
 
