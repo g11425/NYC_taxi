@@ -1,4 +1,3 @@
-from codecs import lookup
 from pyspark.sql import SparkSession, functions as f
 from config import etl_settings as s
 import os
@@ -73,6 +72,8 @@ file_name = "yellow_tripdata_2025-01.parquet"
 raw_file, processed_file = read_file_names()
 dq_stats = read_extras_names()
 
+print(read_extras_names())
+
 import_config = {
     "header":"true",
     "mode":"FAILFAST"
@@ -117,8 +118,12 @@ stats_df = df.agg(
 
 print(df.count())
 
-stats_df = df.count()
-df.write.mode("overwrite").csv(dq_stats)
+print("Writing processed data to: ", dq_stats)
+
+stats_df.write.mode("overwrite").option("header", "true").csv(dq_stats)
+
+print("Writing processed data to: ", processed_file)
+
 df.write.mode("overwrite").parquet(processed_file)
 
 spark.stop()

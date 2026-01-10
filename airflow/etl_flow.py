@@ -18,13 +18,25 @@ import requests
 from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOperator
 from airflow.providers.amazon.aws.sensors.emr import EmrStepSensor
 from airflow.providers.amazon.aws.operators.emr import EmrAddStepsOperator, EmrCreateJobFlowOperator, EmrTerminateJobFlowOperator
+from airflow.providers.amazon.aws.operators.s3 import S3CreateObjectOperator
 
 from airflow.FileOps import FileOps
-from config import PROJECT_ROOT
+from config import PROJECT_ROOT, etl_settings as s
 
 
 
 S3_EMR_PY_SCRIPT = "s3://s3-giam-bucket-001/NYC_taxi/etl_spark_emr.py"
+
+EMR_BOOTSTRAP_COMMANDS = f"""#!/bin/bash
+set -e
+# Install required libraries
+sudo pip3 install pydantic pydantic-settings smart_open
+
+# Create folder and download your .env file
+sudo mkdir -p ~/NYC_taxi/config
+sudo aws s3 cp {s.S3_CONF_FILE} ~/NYC_taxi/config/env
+sudo chmod 644 ~/NYC_taxi/config/env
+"""
 
 
 def upload_to_s3(bucket_name, save_key, file_name, file_path):
@@ -153,7 +165,18 @@ with DAG(
     #     """
     #     )
 
-    t7 = S3ToRedshiftOperator(
+    zip_conf_file = os.path.join(s.PROJECT_ROOT, "conf.zip")
+
+    setup_conf_dep_in_s3 = BashOperator(
+        task_id="setup_conf_in_s3",
+        bash_command=f""" aws s3 cp {os.path.join("~/NYC_taxi/conf/", "env")} {os.path.join(s.S3_STORE_PREFIX, "env")} &&\
+            zip {zip_conf_file} {os.path.join(s.PROJECT_ROOT, "config.py")} &&\
+                aws s3 cp {zip_conf_file} {os.path.join(s.S3_STORE_PREFIX, "conf.zip")} """
+        )
+
+        
+    
+    copy_to_redshfit = S3ToRedshiftOperator(
         task_id="copy_to_redshfit",
         redshift_conn_id="redshfit_default",
         aws_conn_id="aws_default",
@@ -164,6 +187,15 @@ with DAG(
         schema="public",
         copy_options=["parquet"]
         )
+
+    upload_bootstrap_task = S3CreateObjectOperator(
+        task_id="upload_bootstrap_to_s3",
+        s3_bucket=s.S3_BUCKET_SIMPLE,
+        s3_key=s.S3_EMR_BOOTSTRAP_SCRIPT_KEY,
+        data=EMR_BOOTSTRAP_COMMANDS,
+        replace=True, # Overwrite the file if it already exists
+        aws_conn_id="aws_default"
+    )        
 
     JOB_FLOW_OVERRIDES = {
         "Name": "NYC_taxi_cluster",
@@ -178,6 +210,14 @@ with DAG(
             "KeepJobFlowAliveWhenNoSteps": True, # Important: Don't kill cluster before we add steps!
             "TerminationProtected": False,
         },
+        "BootstrapActions": [
+        {
+            "Name": "Install Dependencies and Config",
+            "ScriptBootstrapAction": {
+                "Path": os.path.join(s.S3_BUCKET, s.S3_EMR_BOOTSTRAP_SCRIPT_KEY)
+            }
+        }
+    ],
         "JobFlowRole": "EC2_NYC_taxi",
         "ServiceRole": "EMR_service",
     }
@@ -202,6 +242,7 @@ with DAG(
                 'Jar':'command-runner.jar',
                 'Args':['spark-submit', 
                         '--deploy-mode', 'cluster',
+                        '--py-files', s.S3_EMR_PY_FILE,
                         S3_EMR_PY_SCRIPT]
                 }
             }
@@ -245,12 +286,14 @@ with DAG(
     #     )
 
 
-    t9 = PythonOperator(
+    fetch_data_to_s3 = PythonOperator(
         task_id="fetch_data_to_s3",
         python_callable=task_fetch_to_s3)
 
 
-    t9 >> create_cluster >> add_step >> wait_for_step >> terminate_cluster >> t7
+    (fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
+     add_step >> wait_for_step >> terminate_cluster 
+       >> copy_to_redshfit)
 
 
 
