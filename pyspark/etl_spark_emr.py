@@ -85,6 +85,8 @@ df.show(10)
 df = df.filter((f.col("fare_amount") != 0) & (f.col("PULocationID") != 0) & (f.col("DOLocationID") != 0))
 df = df.withColumn("IsWeekend", f.when(f.dayofweek(f.col("tpep_pickup_datetime")).isin(1,7), 1).otherwise(0))
 
+print("s.S3_PAYMENT_TYPE_FILE:", s.S3_PAYMENT_TYPE_FILE)
+
 paymenttype_dict = parse_lookups(s.S3_PAYMENT_TYPE_FILE)
 ratecode_dict = parse_lookups(s.S3_RATE_CODE_FILE)
 taxizone_dict = parse_lookups(s.S3_TAXI_ZONE_FILE)
@@ -109,6 +111,16 @@ df = df.withColumn("payment_type", udf_payment_type(f.col("payment_code")))\
     .withColumn("DOLocation", udf_taxi_zone(f.col("DOLocationID")))\
     .withColumn("Vendor", udf_taxi_zone(f.col("VendorID")))
 
+
+columns_to_hash = [
+    "VendorID", 
+    "tpep_pickup_datetime", 
+    "tpep_dropoff_datetime", 
+    "PULocationID"
+]
+
+df = df.withColumn("trip_id", f.sha2(f.concat_ws("||", **columns_to_hash), 256))
+
 stats_df = df.agg(
     f.sum("total_amount").alias("total_amount"),
     f.count("VendorID").alias("row_count")
@@ -125,5 +137,7 @@ stats_df.write.mode("overwrite").option("header", "true").csv(dq_stats)
 print("Writing processed data to: ", processed_file)
 
 df.write.mode("overwrite").parquet(processed_file)
+
+df.printSchema()
 
 spark.stop()
