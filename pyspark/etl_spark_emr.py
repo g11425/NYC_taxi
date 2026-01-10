@@ -111,6 +111,16 @@ df = df.withColumn("payment_type", udf_payment_type(f.col("payment_code")))\
     .withColumn("DOLocation", udf_taxi_zone(f.col("DOLocationID")))\
     .withColumn("Vendor", udf_taxi_zone(f.col("VendorID")))
 
+
+columns_to_hash = [
+    "VendorID", 
+    "tpep_pickup_datetime", 
+    "tpep_dropoff_datetime", 
+    "PULocationID"
+]
+
+df = df.withColumn("trip_id", f.sha2(f.concat_ws("||", **columns_to_hash), 256))
+
 stats_df = df.agg(
     f.sum("total_amount").alias("total_amount"),
     f.count("VendorID").alias("row_count")

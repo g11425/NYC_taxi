@@ -24,7 +24,8 @@ CREATE TABLE yellow_taxi_trips (
     rate_type              VARCHAR(50),
     PULocation             VARCHAR(255),
     DOLocation             VARCHAR(255),
-    Vendor                 VARCHAR(255)
+    Vendor                 VARCHAR(255),
+    trip_id                VARCHAR(64) PRIMARY KEY
 )
 DISTSTYLE EVEN
-SORTKEY (tpep_pickup_datetime);
+SORTKEY (trip_id);
