@@ -1,4 +1,4 @@
-CREATE TABLE yellow_taxi_trips (
+CREATE TABLE yellow_taxi_trips_{{date_interval_start.year}}_{{date_interval_start.month}} (
     VendorID               INTEGER,
     tpep_pickup_datetime   TIMESTAMP,
     tpep_dropoff_datetime  TIMESTAMP,

@@ -19,6 +19,7 @@ from airflow.providers.amazon.aws.transfers.s3_to_redshift import S3ToRedshiftOp
 from airflow.providers.amazon.aws.sensors.emr import EmrStepSensor
 from airflow.providers.amazon.aws.operators.emr import EmrAddStepsOperator, EmrCreateJobFlowOperator, EmrTerminateJobFlowOperator
 from airflow.providers.amazon.aws.operators.s3 import S3CreateObjectOperator
+from airflow.providers.amazon.aws.operators.redshift_data import RedshiftDataOperator
 
 from airflow.FileOps import FileOps
 from config import PROJECT_ROOT, etl_settings as s
@@ -108,13 +109,14 @@ def task_fetch_to_s3(**kwargs):
 
 
 
-
 with DAG(
     dag_id="NYC_taxi_flow",
     default_args={
         "depends_on_past":False,
         "retries": 1,
         "retry_delay":timedelta(minutes=5),
+        "template_searchpath": os.path.join(PROJECT_ROOT, "sql"),
+        "start_date": datetime(2025, 1, 1)
         # 'queue': 'bash_queue',
         # 'pool': 'backfill',
         # 'priority_weight': 10,
@@ -127,7 +129,9 @@ with DAG(
         # 'sla_miss_callback': yet_another_function, # or list of functions
         # 'on_skipped_callback': another_function, #or list of functions
         # 'trigger_rule': 'all_success'
-        }
+        },
+        schedule="0 0 1 * *", # At 00:00 on day-of-month 1,
+        catchup=False
     ) as dag:
 
 
@@ -285,6 +289,13 @@ with DAG(
     #     region_name="eu-north-1"
     #     )
 
+    redshift_create_table = RedshiftDataOperator(
+        task_id="redshift_create_table",
+        cluster_identifier=None,
+        database="dev",
+        workgroup_name="awsuser",
+        sql="create_table.sql",
+        wait_for_completion=True)
 
     fetch_data_to_s3 = PythonOperator(
         task_id="fetch_data_to_s3",
