@@ -5,7 +5,14 @@ import functools
 from pyspark.sql.types import (StructType, StructField, StringType, LongType, IntegerType,
                                DoubleType, TimestampType)
 from smart_open import open
+import argparse
 
+
+def parse_args():
+
+    parser = argparse.ArgumentParser(description='ETL for NYC Taxi data')
+    parser.add_argument('--run-date', type=str, required=True, help='Run date in YYYY-MM format')
+    return parser.parse_args()
 
 
 
