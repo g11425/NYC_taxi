@@ -14,5 +14,7 @@ echo $DBT_REDSHIFT_PASSWORD
 
 dbt run --profiles-dir . --project-dir .
 
-dbt clean 
+# dbt test --profiles-dir . --project-dir .
+
+# dbt clean 
 

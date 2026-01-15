@@ -18,6 +18,6 @@
     RATE_CODE_FILE = "ratecode_lookup.csv"
     TAXI_ZONE_FILE = "taxi_zone_lookup.csv"
     VENDOR_LOOKUP_FILE = "vendor_lookup.csv"
-    S3_EXTRAS = "NYC_taxi/processed/2025/01/extras"
+    S3_EXTRAS = "extras"
     LOCAL_EXTRAS = "extras"
     S3_EMR_BOOTSTRAP_SCRIPT_KEY = "NYC_taxi/emr_bootstrap.sh"

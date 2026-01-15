@@ -245,6 +245,19 @@ with DAG(
         schema="public",
         copy_options=["parquet"]
         )
+    
+    copy_extras_to_redshfit = S3ToRedshiftOperator(
+        task_id="copy_extras_to_redshfit",
+        redshift_conn_id="redshfit_default",
+        aws_conn_id="aws_default",
+        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}_stats",
+        s3_bucket=s.S3_BUCKET_SIMPLE,
+        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.S3_EXTRAS),
+        method="REPLACE", #APPEND. UPSERT, REPLACE
+        schema="public",
+        copy_options=["csv", "IGNOREHEADER 1"]
+        )
+
 
     upload_bootstrap_task = S3CreateObjectOperator(
         task_id="upload_bootstrap_to_s3",
@@ -352,6 +365,16 @@ with DAG(
         wait_for_completion=True,
         region_name="eu-north-1")
 
+    redshift_create_extras_table = RedshiftDataOperator(
+        task_id="redshift_create_extras_table",
+        cluster_identifier=None,
+        database=s.REDSHIFT_DATABASE,
+        workgroup_name=s.REDSHIFT_WORKGROUP,
+        sql="create_extras_table.sql",
+        wait_for_completion=True,
+        region_name="eu-north-1")
+
+
     fetch_data_to_s3 = PythonOperator(
         task_id="fetch_data_to_s3",
         python_callable=task_fetch_to_s3,
@@ -359,10 +382,10 @@ with DAG(
 
 
     (
-        fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
-     add_step >> wait_for_step >> terminate_cluster >>
-        redshift_create_table 
-       >> copy_to_redshfit)
+    #     fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
+    #  add_step >> wait_for_step >> terminate_cluster >>
+        redshift_create_table >> redshift_create_extras_table
+       >> copy_to_redshfit >> copy_extras_to_redshfit)
 
 
 

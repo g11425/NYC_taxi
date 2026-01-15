@@ -11,6 +11,6 @@ dbt_poc:
       schema: public
       threads: 4
       keepalives_idle: 240 # default 240 seconds
-      connect_timeout: 30 # default 10 seconds
+      connect_timeout: 300 # default 10 seconds
       sslmode: require
       ra3_node: true
