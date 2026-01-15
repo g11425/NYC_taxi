@@ -1,0 +1,6 @@
+sources:
+  - name: yellow_taxi_source
+    schema: public
+    tables:
+      - name: yellow_taxi_trips
+        identifier: yellow_taxi_trips_{{ env_var('DATA_PERIOD') }}
