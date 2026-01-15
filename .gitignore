@@ -4,3 +4,9 @@
 
 /helper
 /conf/.env
+/__pycache__/
+/.vscode/
+/.pytest_cache/
+/data/processed/
+/data/raw/
+/dbt/target/

@@ -1,0 +1,16 @@
+dbt_poc:
+  target: dev
+  outputs:
+    dev:
+      type: redshift
+      host: "awsuser.478106802666.eu-north-1.redshift-serverless.amazonaws.com"
+      user: "{{ env_var('DBT_REDSHIFT_USER') }}"
+      password: "{{ env_var('DBT_REDSHIFT_PASSWORD') }}"
+      port: 5439
+      dbname: dev
+      schema: public
+      threads: 4
+      keepalives_idle: 240 # default 240 seconds
+      connect_timeout: 30 # default 10 seconds
+      sslmode: require
+      ra3_node: true
