@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS yellow_taxi_trips_{{get_data_period_ym(ds, -3)}} (
     PULocation             VARCHAR(255),
     DOLocation             VARCHAR(255),
     Vendor                 VARCHAR(255),
+    Run_Date               DATE NOT NULL,
+    Run_Date_Short         VARCHAR(7) NOT NULL,
     trip_id                VARCHAR(64) PRIMARY KEY
 )
 DISTSTYLE EVEN

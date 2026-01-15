@@ -8,8 +8,8 @@
     LOCAL_RAW_DATA_PATH = "/home/ec2-user/NYC_taxi/data/raw/"
     LOCAL_PRCSD_DATA_PATH = "/home/ec2-user/NYC_taxi/data/processed/"
 
-    S3_RAW_KEY = "NYC_taxi/raw/2025/01/"
-    S3_PRCSD_KEY = "NYC_taxi/processed/2025/01/"
+    S3_RAW_KEY = "NYC_taxi/raw/"
+    S3_PRCSD_KEY = "NYC_taxi/processed/"
     FILE_NAME = "yellow_tripdata_2025-01.parquet"
     ETL_PY_PATH_REL = "airflow"
     ETL_PY_FILE_NAME = "etl_spark_emr.py"

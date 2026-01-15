@@ -240,7 +240,7 @@ with DAG(
         aws_conn_id="aws_default",
         table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}",
         s3_bucket=s.S3_BUCKET_SIMPLE,
-        s3_key= os.path.join(s.S3_RAW_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.FILE_NAME_PATTERN),
+        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.FILE_NAME_PATTERN),
         method="REPLACE", #APPEND. UPSERT, REPLACE
         schema="public",
         copy_options=["parquet"]
@@ -359,8 +359,8 @@ with DAG(
 
 
     (
-    #     fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
-    #  add_step >> wait_for_step >> terminate_cluster >>
+        fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
+     add_step >> wait_for_step >> terminate_cluster >>
         redshift_create_table 
        >> copy_to_redshfit)
 
