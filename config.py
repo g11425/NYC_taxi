@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     LOCAL_RAW_DATA_PATH:str = "/home/ec2-user/NYC_taxi/data/raw/"
     LOCAL_PRCSD_DATA_PATH:str = "/home/ec2-user/NYC_taxi/data/processed/"
 
+
     S3_RAW_KEY:str = "NYC_taxi/raw/2025/01/"
     S3_PRCSD_KEY:str = "NYC_taxi/processed/2025/01/"
     FILE_NAME:str = "yellow_tripdata_2025-01.parquet"
@@ -46,7 +47,13 @@ class Settings(BaseSettings):
     S3_EXTRAS:str = "NYC_taxi/processed/2025/01/extras"
     LOCAL_EXTRAS:str = "extras"
     S3_EMR_BOOTSTRAP_SCRIPT_KEY:str = "NYC_taxi/emr_bootstrap.sh"
-
+    RUN_DATE:str = "2025-01-01"
+    REDSHIFT_WORKGROUP:str = "awsuser"
+    REDSHIFT_DATABASE:str = "dev"
+    DATA_HOST:str = "https://d37ci6vzurychx.cloudfront.net/trip-data/"
+    FILE_NAME_PATTERN:str = "yellow_tripdata_{{get_data_period(ds, '%Y-%m', -3)}}.parquet"
+    FILE_NAME_TEMPLATE:str = "yellow_tripdata_yyyy-mm.parquet"
+#changes added
     @computed_field(return_type=str)
     @property
     def S3_BUCKET(self):

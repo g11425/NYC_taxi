@@ -31,6 +31,14 @@ def lookup_payment(lookup_dict, key):
     return lookup_dict.get(key)
 
 
+def create_dq_stats( df):
+    stats = df.groupBy(f.col("Run_Date_Short")).agg(f.sum("total_amount").alias("total_amount"),
+                                                      f.count("trip_id").alias("row_count"))
+    stats = stats.select("Run_Date_Short",
+                         f.expr("stack(2, 'total_amount', total_amount, 'row_count', CAST(row_count AS DOUBLE)) as (metric_name, metric_value)"))    
+    return stats
+
+
 if __name__ == "__main__":
 
 
@@ -125,12 +133,7 @@ if __name__ == "__main__":
 
     df = df.withColumn("trip_id", f.sha2(f.concat_ws("||", *columns_to_hash), 256))
 
-    stats_df = df.agg(
-        f.sum("total_amount").alias("total_amount"),
-        f.count("VendorID").alias("row_count")
-        )
-
-
+    stats_df = create_dq_stats(df)
 
     print(df.count())
 
