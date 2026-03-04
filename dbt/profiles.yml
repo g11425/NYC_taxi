@@ -14,3 +14,4 @@ dbt_poc:
       connect_timeout: 300 # default 10 seconds
       sslmode: require
       ra3_node: true
+      bind_vars: false

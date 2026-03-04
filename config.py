@@ -148,6 +148,11 @@ class Settings(BaseSettings):
     @property
     def S3_EMR_PY_SCRIPT(self):
         return os.path.join(self.S3_BUCKET, self.S3_ETL_PY_PREFIX, self.ETL_PY_FILE_NAME)
+    
+    @computed_field(return_type=str)
+    @property
+    def DBT_PATH(self):
+        return os.path.join(self.PROJECT_ROOT, "dbt")
 
     model_config = SettingsConfigDict(env_file=os.path.join("~/NYC_taxi/conf/", "env"), env_file_encoding="utf-8", extra='allow')
     

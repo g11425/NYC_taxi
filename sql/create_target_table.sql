@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS yellow_taxi_trips_{{get_data_period_ym(ds, -3)}} (
     Airport_fee            DOUBLE PRECISION,
     cbd_congestion_fee     DOUBLE PRECISION,
     IsWeekend              INTEGER NOT NULL,
+    IsNight                INTEGER NOT NULL,
     payment_type           VARCHAR(50),
     rate_type              VARCHAR(50),
     PULocation             VARCHAR(255),
@@ -27,7 +28,8 @@ CREATE TABLE IF NOT EXISTS yellow_taxi_trips_{{get_data_period_ym(ds, -3)}} (
     Vendor                 VARCHAR(255),
     Run_Date               DATE NOT NULL,
     Run_Date_Short         VARCHAR(7) NOT NULL,
-    trip_id                VARCHAR(64) PRIMARY KEY
+    trip_id                VARCHAR(64) PRIMARY KEY,
+    distance_bucket        DOUBLE PRECISION
 )
 DISTSTYLE EVEN
 SORTKEY (trip_id);

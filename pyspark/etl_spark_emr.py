@@ -4,6 +4,7 @@ import os
 import functools
 from pyspark.sql.types import (StructType, StructField, StringType, LongType, IntegerType,
                                DoubleType, TimestampType)
+from pyspark.ml.feature import Bucketizer
 from smart_open import open
 import argparse
 
@@ -33,6 +34,7 @@ def read_extras_names():
     else:
         processed = os.path.join(s.LOCAL_PRCSD_DATA_PATH, s.LOCAL_EXTRAS ,s.FILE_NAME)
     return (processed)
+
 
 
 def parse_lookups(file_name):
@@ -118,6 +120,8 @@ df = df.withColumn("payment_type", udf_payment_type(f.col("payment_code")))\
     .withColumn("DOLocation", udf_taxi_zone(f.col("DOLocationID")))\
     .withColumn("Vendor", udf_taxi_zone(f.col("VendorID")))
 
+df = bucketize_distance(df, splits=[-float("inf"), 0, 1, 3, 5, 10, 20, float("inf")])
+
 
 columns_to_hash = [
     "VendorID", 
@@ -126,7 +130,13 @@ columns_to_hash = [
     "PULocationID"
 ]
 
+
+
 df = df.withColumn("trip_id", f.sha2(f.concat_ws("||", **columns_to_hash), 256))
+
+dftest = df.groupBy("distance_bucket").agg(f.count("trip_id"))
+
+dftest.show()
 
 stats_df = df.agg(
     f.sum("total_amount").alias("total_amount"),

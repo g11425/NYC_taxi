@@ -36,7 +36,7 @@ S3_EMR_PY_SCRIPT = "s3://s3-giam-bucket-001/NYC_taxi/etl_spark_emr.py"
 EMR_BOOTSTRAP_COMMANDS = f"""#!/bin/bash
 set -e
 # Install required libraries
-sudo pip3 install pydantic pydantic-settings smart_open
+sudo pip3 install pydantic pydantic-settings smart_open numpy
 
 # Create folder and download your .env file
 sudo mkdir -p ~/NYC_taxi/config
@@ -151,6 +151,7 @@ def task_fetch_to_s3(**kwargs):
 
 
 
+
 with DAG(
     dag_id="NYC_taxi_flow",
     default_args={
@@ -172,7 +173,7 @@ with DAG(
         # 'trigger_rule': 'all_success'
         },
         template_searchpath= [os.path.join(s.PROJECT_ROOT, "sql")],
-        schedule="0 0 1 * *", # At 00:00 on day-of-month 1,
+        schedule="0 1 1 * *", # At 01:00 on day-of-month 1,
         catchup=False,
         user_defined_macros={
             "get_data_period_ym": get_data_period_ym,
@@ -234,29 +235,11 @@ with DAG(
         )
         
     
-    copy_to_redshfit = S3ToRedshiftOperator(
-        task_id="copy_to_redshfit",
-        redshift_conn_id="redshfit_default",
-        aws_conn_id="aws_default",
-        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}",
-        s3_bucket=s.S3_BUCKET_SIMPLE,
-        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.FILE_NAME_PATTERN),
-        method="REPLACE", #APPEND. UPSERT, REPLACE
-        schema="public",
-        copy_options=["parquet"]
-        )
-    
-    copy_extras_to_redshfit = S3ToRedshiftOperator(
-        task_id="copy_extras_to_redshfit",
-        redshift_conn_id="redshfit_default",
-        aws_conn_id="aws_default",
-        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}_stats",
-        s3_bucket=s.S3_BUCKET_SIMPLE,
-        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.S3_EXTRAS),
-        method="REPLACE", #APPEND. UPSERT, REPLACE
-        schema="public",
-        copy_options=["csv", "IGNOREHEADER 1"]
-        )
+    fetch_data_to_s3 = PythonOperator(
+        task_id="fetch_data_to_s3",
+        python_callable=task_fetch_to_s3,
+        op_kwargs={"file_name": s.FILE_NAME_PATTERN})
+
 
 
     upload_bootstrap_task = S3CreateObjectOperator(
@@ -375,17 +358,48 @@ with DAG(
         region_name="eu-north-1")
 
 
-    fetch_data_to_s3 = PythonOperator(
-        task_id="fetch_data_to_s3",
-        python_callable=task_fetch_to_s3,
-        op_kwargs={"file_name": s.FILE_NAME_PATTERN})
+    copy_to_redshfit = S3ToRedshiftOperator(
+        task_id="copy_to_redshfit",
+        redshift_conn_id="redshfit_default",
+        aws_conn_id="aws_default",
+        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}",
+        s3_bucket=s.S3_BUCKET_SIMPLE,
+        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.FILE_NAME_PATTERN),
+        method="REPLACE", #APPEND. UPSERT, REPLACE
+        schema="public",
+        copy_options=["parquet"]
+        )
+    
+    copy_extras_to_redshfit = S3ToRedshiftOperator(
+        task_id="copy_extras_to_redshfit",
+        redshift_conn_id="redshfit_default",
+        aws_conn_id="aws_default",
+        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}_stats",
+        s3_bucket=s.S3_BUCKET_SIMPLE,
+        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.S3_EXTRAS),
+        method="REPLACE", #APPEND. UPSERT, REPLACE
+        schema="public",
+        copy_options=["csv", "IGNOREHEADER 1"]
+        )
+
+    run_dbt_transforms = BashOperator(
+        task_id="run_dbt_transforms",
+        bash_command="source ~/dbt_env/bin/activate && ./run_dbt.sh {{ get_data_period_ym(ds, -3) }}",
+        cwd=s.DBT_PATH
+    )
+
+    run_dbt_tests = BashOperator(
+        task_id="run_dbt_tests",
+        bash_command="source ~/dbt_env/bin/activate && ./test_dbt.sh {{ get_data_period_ym(ds, -3) }}",
+        cwd=s.DBT_PATH
+    )
 
 
     (
-    #     fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
-    #  add_step >> wait_for_step >> terminate_cluster >>
+        fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
+     add_step >> wait_for_step >> terminate_cluster >>
         redshift_create_table >> redshift_create_extras_table
-       >> copy_to_redshfit >> copy_extras_to_redshfit)
+       >> copy_to_redshfit >> copy_extras_to_redshfit >> run_dbt_transforms >> run_dbt_tests)
 
 
 

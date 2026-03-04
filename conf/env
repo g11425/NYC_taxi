@@ -1,4 +1,5 @@
     EXEC_ENV = "emr" # emr or local
+    DATA_STORE = "s3" # s3 or local
 
     S3_TEST_BUCKET = "s3-giam-bucket-002"
     S3_TEST_RAW_KEY = "NYC_taxi/raw/2025/01/"
