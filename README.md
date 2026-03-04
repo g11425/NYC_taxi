@@ -1,184 +1,666 @@
-# NYC Taxi ELT Pipeline
+# NYC Taxi Batch Data Platform
 
-End-to-end ELT pipeline for NYC Yellow Taxi data using Airflow, Spark (EMR), Redshift, and dbt.
+## Overview
 
-## What this project does
+This project implements a **configurable batch data platform** that ingests, processes, and models the NYC Yellow Taxi dataset using a modern cloud data stack.
 
-- Fetches monthly NYC taxi parquet data from TLC-hosted cloudfront.
-- Stores raw data in S3 under a date-partitioned path.
-- Runs Spark ETL on EMR to clean, enrich, and derive features.
-- Writes processed parquet + data quality metrics back to S3.
-- Loads curated data into Redshift tables.
-- Runs dbt models and tests on top of Redshift-loaded tables.
+The platform is designed with the following principles:
 
-The main orchestration DAG is `airflow/etl_flow.py` with `dag_id="NYC_taxi_flow"`.
+* **Configuration-driven execution**
+* **Reproducible batch runs**
+* **Environment portability**
+* **Separation of compute, storage, and orchestration**
 
-## Pipeline flow
+The system processes monthly taxi datasets and produces analytics-ready warehouse tables and data quality metrics.
 
-Current DAG task order:
+Primary technologies:
 
-1. `fetch_data_to_s3`
-2. `setup_conf_in_s3`
-3. `upload_bootstrap_to_s3`
-4. `create_cluster`
-5. `add_step`
-6. `wait_for_step`
-7. `terminate_cluster`
-8. `redshift_create_table`
-9. `redshift_create_extras_table`
-10. `copy_to_redshfit`
-11. `copy_extras_to_redshfit`
-12. `run_dbt_transforms`
-13. `run_dbt_tests`
+* Apache Airflow — orchestration
+* Apache Spark on EMR — distributed processing
+* Amazon S3 — data lake storage
+* Amazon Redshift Serverless — analytical warehouse
+* dbt — analytics modeling and validation
 
-Schedule: `0 1 1 * *` (monthly, day 1 at 01:00).
+Pipeline DAG:
 
-## Repository layout
+```
+NYC_taxi_flow
+```
 
-- `airflow/`
-  - `etl_flow.py`: Main production DAG.
-  - `FileOps.py`: Local file helper utilities.
-- `spark_jobs/`
-  - `etl_spark_emr.py`: Spark ETL script used by EMR (`--run-date YYYY-MM-DD`).
-- `pyspark/`
-  - Local/legacy Spark scripts for non-EMR runs.
-- `dbt/`
-  - `dbt_project.yml`, `profiles.yml`, models, tests, and helper scripts.
-  - `run_dbt.sh`, `test_dbt.sh`: dbt execution wrappers.
-- `sql/`
-  - `create_target_table.sql`, `create_extras_table.sql`: Redshift DDL used by Airflow.
-- `data/`
-  - Lookup CSVs used by Spark enrichment and reference docs.
-- `conf/env`
-  - Runtime configuration consumed by `config.py` (do not commit secrets).
-- `test/`
-  - Unit/integration tests for settings, airflow helpers, and pipeline utilities.
+The platform is intended to behave like a **deployable batch data platform where environments and runtime behavior are controlled entirely through configuration.**
 
-## Prerequisites
+---
 
-- Python 3.10+
-- Apache Airflow (with Amazon provider)
-- Apache Spark / PySpark
-- AWS CLI configured
-- Access to AWS services used in the DAG:
-  - S3
-  - EMR
-  - Redshift Serverless
-  - Secrets Manager
-- dbt Core + dbt-redshift adapter
+# Architecture
 
-Python packages used by code include (non-exhaustive):
+```
+                +----------------------+
+                |  NYC TLC Dataset     |
+                |  CloudFront Parquet  |
+                +----------+-----------+
+                           |
+                           v
+                 +-------------------+
+                 |  Airflow DAG      |
+                 |  (NYC_taxi_flow)  |
+                 +---------+---------+
+                           |
+                           v
+                    +-------------+
+                    |  S3 Raw     |
+                    | Data Lake   |
+                    +------+------+
+                           |
+                           v
+                  +----------------+
+                  | Spark on EMR   |
+                  | Distributed ETL|
+                  +--------+-------+
+                           |
+                           v
+                    +-------------+
+                    | S3 Processed|
+                    | Data + DQ   |
+                    +------+------+
+                           |
+                           v
+                    +-------------+
+                    | Redshift    |
+                    | Warehouse   |
+                    +------+------+
+                           |
+                           v
+                       +--------+
+                       |  dbt   |
+                       | Models |
+                       +--------+
+                           |
+                           v
+                  Analytics / BI
+```
 
-- `boto3`
-- `requests`
-- `pydantic`
-- `pydantic-settings`
-- `python-dateutil`
-- `pyspark`
-- `smart_open`
-- `pytest`
+---
 
-## Configuration
+# Platform Design Goals
 
-Primary settings are defined in:
+This project intentionally focuses on **platform characteristics rather than a single pipeline**.
 
-- `config.py`
-- `conf/env`
+Key goals:
 
-Important config fields:
+### Configuration Driven
 
-- `EXEC_ENV` (`emr` or `local`)
-- `DATA_STORE` (`s3` or `local`)
-- `S3_BUCKET_SIMPLE`
-- `S3_RAW_KEY`
-- `S3_PRCSD_KEY`
-- `RUN_DATE`
-- `FILE_NAME_TEMPLATE`
+Runtime behavior is controlled through configuration files and environment variables.
 
-Notes:
+This enables:
 
-- `config.py` loads env values from `~/NYC_taxi/conf/env`.
-- dbt credentials are pulled from AWS Secrets Manager by `dbt/export_vars_credentials.py`.
-- Airflow uses AWS connection IDs like `aws_default` and `redshfit_default` (spelling in code is `redshfit_default`).
+* environment portability
+* easy runtime tuning
+* reproducible runs
+* minimal code changes across deployments
 
-## Running the pipeline
+---
 
-### 1. Airflow DAG (recommended)
+### Deployable Batch Platform
 
-Deploy the repo where Airflow can load `airflow/etl_flow.py`, then trigger:
+The system can be deployed into different environments simply by adjusting configuration.
 
-- DAG: `NYC_taxi_flow`
+Example deployment targets:
 
-The DAG will:
+* local Spark execution
+* EMR distributed processing
+* local file storage
+* S3 data lake
 
-- pull source data to S3
-- submit Spark ETL step to EMR
-- load outputs to Redshift
-- run dbt models/tests
+---
 
-### 2. Run Spark ETL script directly (manual)
+### Reproducible Data Processing
 
-Example (from project root):
+Each run is defined by a **data period parameter**.
 
-```bash
+This enables:
+
+* deterministic processing
+* historical backfills
+* easy debugging of past runs
+
+---
+
+# Pipeline Workflow
+
+The Airflow DAG orchestrates the following stages.
+
+## 1. Data Ingestion
+
+Task:
+
+```
+fetch_data_to_s3
+```
+
+Downloads monthly taxi parquet datasets from the NYC TLC CloudFront endpoint.
+
+Raw files are stored in S3:
+
+```
+s3://<bucket>/NYC_taxi/raw/YYYY/MM/yellow_tripdata_YYYY-MM.parquet
+```
+
+The raw zone is **immutable**.
+
+Benefits:
+
+* reproducibility
+* replayability
+* auditability
+
+---
+
+## 2. Runtime Setup
+
+Tasks:
+
+```
+setup_conf_in_s3
+upload_bootstrap_to_s3
+```
+
+These tasks prepare runtime configuration and bootstrap scripts used by the Spark cluster.
+
+---
+
+## 3. EMR Cluster Execution
+
+Tasks:
+
+```
+create_cluster
+add_step
+wait_for_step
+terminate_cluster
+```
+
+The pipeline provisions an **ephemeral EMR cluster** for each run.
+
+Advantages:
+
+* isolated execution environments
+* predictable compute usage
+* no long-running cluster maintenance
+
+---
+
+## 4. Distributed Spark Transformation
+
+Spark job:
+
+```
+spark_jobs/etl_spark_emr.py
+```
+
+Key transformations:
+
+* schema normalization
+* timestamp normalization
+* enrichment of trip attributes
+* generation of data quality metrics
+
+Processed output:
+
+```
+s3://<bucket>/NYC_taxi/processed/YYYY/MM/yellow_tripdata_YYYY-MM.parquet
+```
+
+Data quality metrics:
+
+```
+s3://<bucket>/NYC_taxi/processed/YYYY/MM/extras/
+```
+
+---
+
+## 5. Warehouse Loading
+
+Tasks:
+
+```
+redshift_create_table
+redshift_create_extras_table
+copy_to_redshfit
+copy_extras_to_redshfit
+```
+
+Processed data is loaded into Redshift using the high-performance `COPY` command.
+
+Tables created:
+
+```
+yellow_taxi_trips_<YYYY_MM>
+yellow_taxi_trips_<YYYY_MM>_stats
+```
+
+---
+
+## 6. Analytics Modeling
+
+Tasks:
+
+```
+run_dbt_transforms
+run_dbt_tests
+```
+
+dbt builds analytics models on top of warehouse tables.
+
+Example models:
+
+```
+taxi_agg_<YYYY_MM>
+dq_agg_<YYYY_MM>
+yellow_taxi_analytics
+```
+
+dbt tests enforce data quality constraints.
+
+---
+
+# Configuration System
+
+Configuration is the core of the platform.
+
+The system is designed so that **behavior can be modified without changing code**.
+
+Primary configuration sources:
+
+```
+config.py
+conf/env
+```
+
+The configuration layer uses **environment variables and Pydantic settings** for validation.
+
+---
+
+# Key Configuration Options
+
+## Environment Control
+
+Defines where the pipeline executes.
+
+```
+EXEC_ENV
+```
+
+Options:
+
+```
+local
+emr
+```
+
+Example:
+
+```
+EXEC_ENV=emr
+```
+
+---
+
+## Data Storage Backend
+
+Controls where data is stored.
+
+```
+DATA_STORE
+```
+
+Options:
+
+```
+local
+s3
+```
+
+This allows the platform to run locally for development or on AWS in production.
+
+Example:
+
+```
+DATA_STORE=s3
+```
+
+---
+
+## Run Date / Data Period
+
+Defines which dataset period the pipeline processes.
+
+```
+RUN_DATE
+```
+
+Example:
+
+```
+RUN_DATE=2025-01-01
+```
+
+This enables:
+
+* historical backfills
+* deterministic reruns
+* debugging past runs
+
+---
+
+## S3 Storage Configuration
+
+Primary storage bucket:
+
+```
+S3_BUCKET_SIMPLE
+```
+
+Raw data prefix:
+
+```
+S3_RAW_KEY
+```
+
+Processed data prefix:
+
+```
+S3_PRCSD_KEY
+```
+
+Example:
+
+```
+S3_BUCKET_SIMPLE=my-data-bucket
+S3_RAW_KEY=NYC_taxi/raw
+S3_PRCSD_KEY=NYC_taxi/processed
+```
+
+---
+
+## File Naming Template
+
+Defines dataset naming pattern.
+
+```
+FILE_NAME_TEMPLATE
+```
+
+Example:
+
+```
+yellow_tripdata_{year}-{month}.parquet
+```
+
+---
+
+# Configuration Design Principles
+
+### Environment portability
+
+The same codebase can run in:
+
+* local development
+* staging
+* production
+
+Only configuration changes.
+
+---
+
+### Parameterized pipelines
+
+Runs are parameterized by **RUN_DATE**.
+
+This allows:
+
+* replaying historical data
+* backfilling missing months
+* deterministic processing.
+
+---
+
+### Infrastructure flexibility
+
+Switching compute or storage layers requires only config changes.
+
+Example:
+
+Local development:
+
+```
+EXEC_ENV=local
+DATA_STORE=local
+```
+
+Production:
+
+```
+EXEC_ENV=emr
+DATA_STORE=s3
+```
+
+---
+
+# Data Quality Strategy
+
+Data quality checks occur in two stages.
+
+## Spark-level validation
+
+Spark generates metrics including:
+
+* record counts
+* null column counts
+* distribution statistics
+* schema validation
+
+Metrics are written to the extras dataset.
+
+---
+
+## dbt validation
+
+dbt tests enforce:
+
+* non-null constraints
+* accepted values
+* referential integrity
+* metric sanity checks
+
+---
+
+# Scaling Considerations
+
+### Distributed compute
+
+Spark on EMR provides horizontal scaling.
+
+Large datasets are processed across worker nodes.
+
+---
+
+### Partitioned storage
+
+S3 datasets are partitioned by:
+
+```
+year/month
+```
+
+Benefits:
+
+* efficient Spark scans
+* lower query cost
+* incremental ingestion
+
+---
+
+### Parallel warehouse ingestion
+
+Redshift `COPY` loads data directly from S3 using parallel slices.
+
+This significantly improves ingestion performance.
+
+---
+
+### Incremental analytics models
+
+dbt incremental models avoid full-table rebuilds.
+
+---
+
+# Reliability Design
+
+### Idempotent data ingestion
+
+Raw data is immutable.
+
+Failed runs can safely be replayed.
+
+---
+
+### Ephemeral compute clusters
+
+EMR clusters are created and destroyed per run.
+
+This prevents cluster drift and reduces cost.
+
+---
+
+### Task-level failure isolation
+
+Airflow DAG tasks isolate each stage:
+
+* ingestion
+* transformation
+* loading
+* modeling
+
+Failures can be retried independently.
+
+---
+
+# Repository Structure
+
+```
+airflow/
+  etl_flow.py
+  FileOps.py
+
+spark_jobs/
+  etl_spark_emr.py
+
+pyspark/
+  legacy spark scripts
+
+dbt/
+  models/
+  tests/
+  dbt_project.yml
+  profiles.yml
+
+sql/
+  create_target_table.sql
+  create_extras_table.sql
+
+conf/
+  env
+
+test/
+  airflow/
+  config tests
+```
+
+---
+
+# Running the Platform
+
+## Airflow (recommended)
+
+Deploy DAG:
+
+```
+airflow/etl_flow.py
+```
+
+Trigger:
+
+```
+NYC_taxi_flow
+```
+
+Schedule:
+
+```
+0 1 1 * *
+```
+
+Runs monthly.
+
+---
+
+## Manual Spark Run
+
+```
 python -m spark_jobs.etl_spark_emr --run-date 2025-01-01
 ```
 
-Or via Spark submit (similar to `bash/spark-submit.sh`):
+---
 
-```bash
-spark-submit \
-  --packages org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262 \
-  --conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
-  spark_jobs/etl_spark_emr.py --run-date 2025-01-01
+## dbt Execution
+
 ```
+cd dbt
 
-### 3. Run dbt models/tests manually
-
-From `dbt/`:
-
-```bash
 ./run_dbt.sh 2025_01
 ./test_dbt.sh 2025_01
 ```
 
-These scripts:
+---
 
-- set `DATA_PERIOD`
-- export Redshift credentials from Secrets Manager
-- run `dbt deps`, `dbt run`, and `dbt test`
+# Testing
 
-## Testing
+Run tests:
 
-Run tests from project root:
-
-```bash
+```
 pytest -q
 ```
 
-Current tests cover:
+Coverage includes:
 
-- settings/path rendering behavior (`test/test_settings.py`)
-- Airflow helper functions and task templating (`test/airflow/test_etl_flow.py`)
-- file operation helpers (`test/airflow/test_FileOps.py`)
+* configuration parsing
+* Airflow DAG logic
+* file helper utilities
+* configuration rendering
 
-Some tests hit real AWS services (S3/network), so credentials and permissions are required.
+---
 
-## Data and model outputs
+# Future Improvements
 
-- Processed Spark parquet: `s3://<bucket>/NYC_taxi/processed/<YYYY>/<MM>/yellow_tripdata_<YYYY-MM>.parquet`
-- Spark DQ CSV stats: `.../processed/<YYYY>/<MM>/extras/`
-- Redshift source tables:
-  - `yellow_taxi_trips_<YYYY_MM>`
-  - `yellow_taxi_trips_<YYYY_MM>_stats`
-- dbt models:
-  - `taxi_agg_<YYYY_MM>`
-  - `dq_agg_<YYYY_MM>`
-  - `dq_<YYYY_MM>`
-  - `yellow_taxi_analytics` (incremental)
+Potential platform extensions:
 
-## Known caveats
+* automated CI/CD for Airflow DAGs
+* data lineage tracking
+* monitoring via Prometheus/Grafana
+* automated backfill tooling
+* advanced data validation with Great Expectations
+* Redshift distribution and sort key optimization
 
-- This repo does not include a dependency lock file (`requirements.txt`/`pyproject.toml`).
-- Some script/task names use legacy typos (for example `redshfit`) and should match existing Airflow connection IDs unless refactored.
-- Several test modules are integration-style and assume live AWS access.
+---
+
+# Summary
+
+This project demonstrates a configurable batch data platform with:
+
+* distributed Spark processing
+* warehouse analytics modeling
+* Airflow orchestration
+* configuration-driven deployment
+* reproducible batch processing
+
+The architecture reflects patterns commonly used in modern production data platforms.
