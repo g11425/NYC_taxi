@@ -664,3 +664,5 @@ This project demonstrates a configurable batch data platform with:
 * reproducible batch processing
 
 The architecture reflects patterns commonly used in modern production data platforms.
+
+
