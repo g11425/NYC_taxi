@@ -244,21 +244,20 @@ Airflow tasks include:
 
 The `NYC_taxi_flow` DAG orchestrates the batch pipeline through the following tasks.
 
-| Task Name                  | Description                                                                                                                     |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **fetch_data_to_s3**       | Performs data ingestion by downloading source datasets and storing them in the S3 data lake raw zone.                           |
-| **setup_conf_in_s3**       | Prepares runtime configuration for the Spark job and uploads environment files and required scripts to S3 for use by EMR steps. |
-| **upload_bootstrap_to_s3** | Generates and uploads an EMR bootstrap script that installs required dependencies on cluster startup.                           |
-| **create_cluster**         | Triggers creation of an ephemeral EMR cluster used to execute the Spark transformation job.                                     |
-| **add_step**               | Adds the Spark job as an EMR step to the cluster for distributed processing.                                                    |
-| **wait_for_step**          | Airflow sensor that waits for the Spark step execution to complete on the EMR cluster.                                          |
-| **terminate_cluster**      | Terminates the EMR cluster after execution, regardless of success or failure, to prevent unnecessary compute costs.             |
-| **redshift_create_table**  | Creates Redshift tables if they do not already exist to prevent runtime failures during data loading.                           |
-| **copy_to_redshift**       | Loads processed datasets from S3 into Redshift using the high-performance `COPY` command.                                       |
-| **run_dbt_transforms**     | Executes dbt models to perform analytics transformations and build curated data models.                                         |
-| **run_dbt_tests**          | Runs dbt tests to validate model integrity and ensure data quality constraints are satisfied.                                   |
 
-```
+| Task                     | Description                                                                                    |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `fetch_data_to_s3`       | Data ingestion into the S3 data lake.                                                          |
+| `setup_conf_in_s3`       | Sets up runtime environment configuration and uploads required scripts to S3 for the EMR step. |
+| `upload_bootstrap_to_s3` | Generates and uploads the EMR bootstrap script used to install dependencies.                   |
+| `create_cluster`         | Triggers creation of the EMR cluster.                                                          |
+| `add_step`               | Adds the Spark processing step to the EMR cluster.                                             |
+| `wait_for_step`          | Airflow sensor that waits for the EMR step to complete.                                        |
+| `terminate_cluster`      | Terminates the EMR cluster regardless of success or failure of the step.                       |
+| `redshift_create_table`  | Creates Redshift tables if they do not exist to avoid runtime errors.                          |
+| `copy_to_redshift`       | Loads processed data from S3 into Redshift.                                                    |
+| `run_dbt_transforms`     | Executes dbt models to perform analytics transformations.                                      |
+| `run_dbt_tests`          | Runs dbt tests to validate model outputs and data quality.                                     |
 
 ---
 
