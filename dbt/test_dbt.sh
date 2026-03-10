@@ -10,11 +10,7 @@ export DATA_PERIOD=$1
 
 eval $(python export_vars_credentials.py)
 
-echo $DBT_REDSHIFT_PASSWORD
-
-dbt deps --profiles-dir . --project-dir .
-
-dbt run --profiles-dir . --project-dir . 
+dbt test --profiles-dir . --project-dir .
 
 # dbt clean 
 

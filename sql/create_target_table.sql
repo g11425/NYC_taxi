@@ -1,4 +1,4 @@
-CREATE TABLE yellow_taxi_trips_{{date_interval_start.year}}_{{date_interval_start.month}} (
+CREATE TABLE IF NOT EXISTS yellow_taxi_trips_{{get_data_period_ym(ds, -3)}} (
     VendorID               INTEGER,
     tpep_pickup_datetime   TIMESTAMP,
     tpep_dropoff_datetime  TIMESTAMP,
@@ -20,12 +20,16 @@ CREATE TABLE yellow_taxi_trips_{{date_interval_start.year}}_{{date_interval_star
     Airport_fee            DOUBLE PRECISION,
     cbd_congestion_fee     DOUBLE PRECISION,
     IsWeekend              INTEGER NOT NULL,
+    IsNight                INTEGER NOT NULL,
     payment_type           VARCHAR(50),
     rate_type              VARCHAR(50),
     PULocation             VARCHAR(255),
     DOLocation             VARCHAR(255),
     Vendor                 VARCHAR(255),
-    trip_id                VARCHAR(64) PRIMARY KEY
+    Run_Date               DATE NOT NULL,
+    Run_Date_Short         VARCHAR(7) NOT NULL,
+    trip_id                VARCHAR(64) PRIMARY KEY,
+    distance_bucket        DOUBLE PRECISION
 )
 DISTSTYLE EVEN
 SORTKEY (trip_id);

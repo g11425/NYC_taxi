@@ -1,4 +1,5 @@
     EXEC_ENV = "emr" # emr or local
+    DATA_STORE = "s3" # s3 or local
 
     S3_TEST_BUCKET = "s3-giam-bucket-002"
     S3_TEST_RAW_KEY = "NYC_taxi/raw/2025/01/"
@@ -8,8 +9,8 @@
     LOCAL_RAW_DATA_PATH = "/home/ec2-user/NYC_taxi/data/raw/"
     LOCAL_PRCSD_DATA_PATH = "/home/ec2-user/NYC_taxi/data/processed/"
 
-    S3_RAW_KEY = "NYC_taxi/raw/2025/01/"
-    S3_PRCSD_KEY = "NYC_taxi/processed/2025/01/"
+    S3_RAW_KEY = "NYC_taxi/raw/"
+    S3_PRCSD_KEY = "NYC_taxi/processed/"
     FILE_NAME = "yellow_tripdata_2025-01.parquet"
     ETL_PY_PATH_REL = "airflow"
     ETL_PY_FILE_NAME = "etl_spark_emr.py"
@@ -18,6 +19,6 @@
     RATE_CODE_FILE = "ratecode_lookup.csv"
     TAXI_ZONE_FILE = "taxi_zone_lookup.csv"
     VENDOR_LOOKUP_FILE = "vendor_lookup.csv"
-    S3_EXTRAS = "NYC_taxi/processed/2025/01/extras"
+    S3_EXTRAS = "extras"
     LOCAL_EXTRAS = "extras"
     S3_EMR_BOOTSTRAP_SCRIPT_KEY = "NYC_taxi/emr_bootstrap.sh"

@@ -4,6 +4,7 @@ import os
 import functools
 from pyspark.sql.types import (StructType, StructField, StringType, LongType, IntegerType,
                                DoubleType, TimestampType, DecimalType)
+from pyspark.ml.feature import Bucketizer
 from smart_open import open
 import argparse
 from datetime import datetime
@@ -37,6 +38,12 @@ def create_dq_stats( df):
     stats = stats.select("Run_Date_Short",
                          f.expr("stack(2, 'total_amount', total_amount, 'row_count', CAST(row_count AS DOUBLE)) as (metric_name, metric_value)"))    
     return stats
+
+
+def bucketize_distance(df, splits):
+    bucketizer = Bucketizer(splits=splits, inputCol="trip_distance", outputCol="distance_bucket")
+    df = bucketizer.setHandleInvalid("keep").transform(df)
+    return df
 
 
 if __name__ == "__main__":
@@ -95,7 +102,10 @@ if __name__ == "__main__":
     df.printSchema()
     df.show(10)
     df = df.filter((f.col("fare_amount") != 0) & (f.col("PULocationID") != 0) & (f.col("DOLocationID") != 0))
+    df = df.filter((f.col("trip_distance") > 0) & (f.col("trip_distance") < 200))
+
     df = df.withColumn("IsWeekend", f.when(f.dayofweek(f.col("tpep_pickup_datetime")).isin(1,7), 1).otherwise(0))
+    df = df.withColumn("IsNight", f.when((f.hour(f.col("tpep_pickup_datetime")) >= 20) | (f.hour(f.col("tpep_pickup_datetime")) < 6), 1).otherwise(0))
 
     print("s.S3_PAYMENT_TYPE_FILE:", s.S3_PAYMENT_TYPE_FILE)
 
@@ -132,6 +142,19 @@ if __name__ == "__main__":
     ]
 
     df = df.withColumn("trip_id", f.sha2(f.concat_ws("||", *columns_to_hash), 256))
+
+    df = bucketize_distance(df, splits=[-float("inf"), 0, 1, 3, 5, 10, 20, 40, 60, 200, float("inf")])
+
+
+    df.select(f.max(f.col("trip_distance"))).show(10)
+
+    bucket_test = df.groupBy("distance_bucket").agg(f.count("trip_id")).orderBy(f.col("distance_bucket").desc())
+
+    bucket_test.show()
+
+    df_check  = df.orderBy(f.col("trip_distance").desc()).limit(20)
+
+    df_check.show()
 
     stats_df = create_dq_stats(df)
 

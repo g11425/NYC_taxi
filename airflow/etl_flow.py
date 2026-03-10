@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import logging
 import os.path
 from urllib import response
@@ -7,7 +8,9 @@ from urllib import response
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
 
-# The DAG object; we'll need this to instantiate a DAG
+
+
+# The DAG object; we'll need this to instantiate a  DAG
 from airflow.sdk import DAG
 import os
 from urllib.request import urlretrieve
@@ -21,6 +24,8 @@ from airflow.providers.amazon.aws.operators.emr import EmrAddStepsOperator, EmrC
 from airflow.providers.amazon.aws.operators.s3 import S3CreateObjectOperator
 from airflow.providers.amazon.aws.operators.redshift_data import RedshiftDataOperator
 
+
+
 from airflow.FileOps import FileOps
 from config import PROJECT_ROOT, etl_settings as s
 
@@ -31,13 +36,44 @@ S3_EMR_PY_SCRIPT = "s3://s3-giam-bucket-001/NYC_taxi/etl_spark_emr.py"
 EMR_BOOTSTRAP_COMMANDS = f"""#!/bin/bash
 set -e
 # Install required libraries
-sudo pip3 install pydantic pydantic-settings smart_open
+sudo pip3 install pydantic pydantic-settings smart_open numpy
 
 # Create folder and download your .env file
 sudo mkdir -p ~/NYC_taxi/config
 sudo aws s3 cp {s.S3_CONF_FILE} ~/NYC_taxi/config/env
 sudo chmod 644 ~/NYC_taxi/config/env
 """
+
+
+
+
+def get_data_period_ym(st_dt, months_offset=0):
+
+    if isinstance(st_dt, str):
+        st_dt = datetime.strptime(st_dt, "%Y-%m-%d")
+
+    st_date = st_dt + relativedelta(months=months_offset)
+
+    return st_date.strftime("%Y_%m")
+
+
+def get_data_period(st_dt, format , months_offset=0):
+
+    if isinstance(st_dt, str):
+        st_dt = datetime.strptime(st_dt, "%Y-%m-%d")
+
+    st_date = st_dt + relativedelta(months=months_offset)
+
+    return st_date.strftime(format)
+
+def get_data_period_ymd(st_dt, months_offset=0):
+
+    if isinstance(st_dt, str):
+        st_dt = datetime.strptime(st_dt, "%Y-%m-%d")
+
+    st_date = st_dt + relativedelta(months=months_offset)
+
+    return st_date.strftime("%Y-%m-%d")
 
 
 def upload_to_s3(bucket_name, save_key, file_name, file_path):
@@ -91,7 +127,7 @@ def fetch_to_s3(file_name, url, bucket_name, save_key):
             s3.upload_fileobj(
                 r.raw,
                 bucket_name,
-                save_key + file_name
+                os.path.join(save_key, file_name)
                 )
 
     except Exception as e:
@@ -99,12 +135,19 @@ def fetch_to_s3(file_name, url, bucket_name, save_key):
         raise
 
 def task_fetch_to_s3(**kwargs):
-    file_name = "yellow_tripdata_2025-01.parquet"
+    file_name = kwargs.get("file_name")
     url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet'
+    url = os.path.join(s.DATA_HOST, file_name)
 
-    bucket_name = "s3-giam-bucket-001"
-    save_key = "NYC_taxi/raw/2025/01/"
+    ds = kwargs.get("ds")
+
+    bucket_name = s.S3_BUCKET_SIMPLE
+    save_key = os.path.join(s.S3_RAW_KEY, get_data_period(ds, '%Y-%m', -3).replace("-", "/"))
+
+    logging.info(f"Fetching {file_name} from {url} to s3://{bucket_name}/{save_key}{file_name}")
+
     fetch_to_s3(file_name, url, bucket_name, save_key)
+
 
 
 
@@ -115,7 +158,6 @@ with DAG(
         "depends_on_past":False,
         "retries": 1,
         "retry_delay":timedelta(minutes=5),
-        "template_searchpath": os.path.join(PROJECT_ROOT, "sql"),
         "start_date": datetime(2025, 1, 1)
         # 'queue': 'bash_queue',
         # 'pool': 'backfill',
@@ -130,8 +172,14 @@ with DAG(
         # 'on_skipped_callback': another_function, #or list of functions
         # 'trigger_rule': 'all_success'
         },
-        schedule="0 0 1 * *", # At 00:00 on day-of-month 1,
-        catchup=False
+        template_searchpath= [os.path.join(s.PROJECT_ROOT, "sql")],
+        schedule="0 1 1 * *", # At 01:00 on day-of-month 1,
+        catchup=False,
+        user_defined_macros={
+            "get_data_period_ym": get_data_period_ym,
+            "get_data_period_ymd": get_data_period_ymd,
+            "get_data_period": get_data_period
+        },
     ) as dag:
 
 
@@ -171,26 +219,28 @@ with DAG(
 
     zip_conf_file = os.path.join(s.PROJECT_ROOT, "conf.zip")
 
+    # setup_conf_dep_in_s3_old = BashOperator(
+    #     task_id="setup_conf_in_s3",
+    #     bash_command=f""" aws s3 cp {os.path.join("~/NYC_taxi/conf/", "env")} {os.path.join(s.S3_STORE_PREFIX, "env")} &&\
+    #         zip {zip_conf_file} {os.path.join(s.PROJECT_ROOT, "config.py")} &&\
+    #             aws s3 cp {zip_conf_file} {os.path.join(s.S3_STORE_PREFIX, "conf.zip")} """
+    #     )
+
+
     setup_conf_dep_in_s3 = BashOperator(
         task_id="setup_conf_in_s3",
         bash_command=f""" aws s3 cp {os.path.join("~/NYC_taxi/conf/", "env")} {os.path.join(s.S3_STORE_PREFIX, "env")} &&\
-            zip {zip_conf_file} {os.path.join(s.PROJECT_ROOT, "config.py")} &&\
-                aws s3 cp {zip_conf_file} {os.path.join(s.S3_STORE_PREFIX, "conf.zip")} """
+                aws s3 cp {os.path.join(s.PROJECT_ROOT, "config.py")} {os.path.join(s.S3_STORE_PREFIX, "config.py")} &&\ 
+                aws s3 cp {os.path.join(s.PROJECT_ROOT, "spark_jobs/etl_spark_emr.py")} {os.path.join(s.S3_STORE_PREFIX, "etl_spark_emr.py")} """
         )
-
         
     
-    copy_to_redshfit = S3ToRedshiftOperator(
-        task_id="copy_to_redshfit",
-        redshift_conn_id="redshfit_default",
-        aws_conn_id="aws_default",
-        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}",
-        s3_bucket=s.S3_BUCKET_SIMPLE,
-        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.FILE_NAME_PATTERN),
-        method="REPLACE", #APPEND. UPSERT, REPLACE
-        schema="public",
-        copy_options=["parquet"]
-        )
+    fetch_data_to_s3 = PythonOperator(
+        task_id="fetch_data_to_s3",
+        python_callable=task_fetch_to_s3,
+        op_kwargs={"file_name": s.FILE_NAME_PATTERN})
+
+
 
     upload_bootstrap_task = S3CreateObjectOperator(
         task_id="upload_bootstrap_to_s3",
@@ -247,7 +297,7 @@ with DAG(
                 'Args':['spark-submit', 
                         '--deploy-mode', 'cluster',
                         '--py-files', s.S3_EMR_PY_FILE,
-                        S3_EMR_PY_SCRIPT]
+                        s.S3_EMR_PY_SCRIPT, '--run-date', '{{ get_data_period_ymd(ds, -3) }}']
                 }
             }
         ]
@@ -292,19 +342,64 @@ with DAG(
     redshift_create_table = RedshiftDataOperator(
         task_id="redshift_create_table",
         cluster_identifier=None,
-        database="dev",
-        workgroup_name="awsuser",
-        sql="create_table.sql",
-        wait_for_completion=True)
+        database=s.REDSHIFT_DATABASE,
+        workgroup_name=s.REDSHIFT_WORKGROUP,
+        sql="create_target_table.sql",
+        wait_for_completion=True,
+        region_name="eu-north-1")
 
-    fetch_data_to_s3 = PythonOperator(
-        task_id="fetch_data_to_s3",
-        python_callable=task_fetch_to_s3)
+    redshift_create_extras_table = RedshiftDataOperator(
+        task_id="redshift_create_extras_table",
+        cluster_identifier=None,
+        database=s.REDSHIFT_DATABASE,
+        workgroup_name=s.REDSHIFT_WORKGROUP,
+        sql="create_extras_table.sql",
+        wait_for_completion=True,
+        region_name="eu-north-1")
 
 
-    (fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
-     add_step >> wait_for_step >> terminate_cluster 
-       >> copy_to_redshfit)
+    copy_to_redshfit = S3ToRedshiftOperator(
+        task_id="copy_to_redshfit",
+        redshift_conn_id="redshfit_default",
+        aws_conn_id="aws_default",
+        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}",
+        s3_bucket=s.S3_BUCKET_SIMPLE,
+        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.FILE_NAME_PATTERN),
+        method="REPLACE", #APPEND. UPSERT, REPLACE
+        schema="public",
+        copy_options=["parquet"]
+        )
+    
+    copy_extras_to_redshfit = S3ToRedshiftOperator(
+        task_id="copy_extras_to_redshfit",
+        redshift_conn_id="redshfit_default",
+        aws_conn_id="aws_default",
+        table="yellow_taxi_trips_{{ get_data_period_ym(ds, -3) }}_stats",
+        s3_bucket=s.S3_BUCKET_SIMPLE,
+        s3_key= os.path.join(s.S3_PRCSD_KEY, '{{get_data_period(ds, "%Y/%m", -3)}}', s.S3_EXTRAS),
+        method="REPLACE", #APPEND. UPSERT, REPLACE
+        schema="public",
+        copy_options=["csv", "IGNOREHEADER 1"]
+        )
+
+    run_dbt_transforms = BashOperator(
+        task_id="run_dbt_transforms",
+        bash_command="source ~/dbt_env/bin/activate && ./run_dbt.sh {{ get_data_period_ym(ds, -3) }}",
+        cwd=s.DBT_PATH
+    )
+
+    run_dbt_tests = BashOperator(
+        task_id="run_dbt_tests",
+        bash_command="source ~/dbt_env/bin/activate && ./test_dbt.sh {{ get_data_period_ym(ds, -3) }}",
+        cwd=s.DBT_PATH
+    )
+
+
+    (
+        fetch_data_to_s3 >> setup_conf_dep_in_s3 >> upload_bootstrap_task >> create_cluster >> 
+     add_step >> wait_for_step >> terminate_cluster >>
+        redshift_create_table >> redshift_create_extras_table
+       >> copy_to_redshfit >> copy_extras_to_redshfit >> run_dbt_transforms >> run_dbt_tests)
 
 
 

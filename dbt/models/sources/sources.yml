@@ -4,3 +4,5 @@ sources:
     tables:
       - name: yellow_taxi_trips
         identifier: yellow_taxi_trips_{{ env_var('DATA_PERIOD') }}
+      - name: yellow_taxi_trips_stats
+        identifier: yellow_taxi_trips_{{ env_var('DATA_PERIOD') }}_stats

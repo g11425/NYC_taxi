@@ -3,9 +3,27 @@
     alias='taxi_agg_' ~ env_var('DATA_PERIOD')
 ) }}
 
-SELECT 
-    sum(fare_amount) AS total_fare_amount,
-    sum(tip_amount) AS total_tip_amount,
-    count(trip_id) AS total_trips,
-    avg(trip_distance) AS avg_trip_distance
+SELECT
+    Run_Date_Short, 
+    payment_type,
+    rate_type,
+    PULocation,
+    DOLocation,
+    Vendor,
+    IsWeekend,
+    IsNight,
+    distance_bucket,
+    sum(fare_amount) AS fare_amount,
+    sum(extra) AS extra,
+    sum(mta_tax) AS mta_tax,
+    sum(tip_amount) AS tip_amount,
+    sum(tolls_amount) AS tolls_amount,
+    sum(improvement_surcharge) AS improvement_surcharge,
+    sum(total_amount) AS total_amount,
+    sum(congestion_surcharge) AS congestion_surcharge,
+    sum(airport_fee) AS airport_fee,
+    sum(cbd_congestion_fee) AS cbd_charge,
+    count(trip_id) AS row_count
 FROM {{ ref('yellow_trip_data') }}
+GROUP BY
+    Run_Date_Short, payment_type, rate_type, PULocation, DOLocation, Vendor, IsWeekend, IsNight, distance_bucket
