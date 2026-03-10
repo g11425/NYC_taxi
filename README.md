@@ -2,24 +2,29 @@
 
 ## Overview
 
-This project implements a **configurable batch data platform** that ingests, processes, and models the NYC Yellow Taxi dataset using a modern cloud data stack.
+This project implements a **configurable batch data platform** designed to ingest, process, validate, and model the NYC Yellow Taxi dataset. This system is designed to feature - 
 
-The platform is designed with the following principles:
+The system is designed to mimic **production-grade batch data platform patterns**, focusing on:
 
-* **Configuration-driven execution**
-* **Reproducible batch runs**
-* **Environment portability**
-* **Separation of compute, storage, and orchestration**
+* configuration-driven deployment
+* reproducible batch runs
+* schema enforcing
+* data enrichment and validation
+* cost-optimized compute
+* analytics modeling
 
-The system processes monthly taxi datasets and produces analytics-ready warehouse tables and data quality metrics.
+The platform processes monthly NYC yellow taxi datasets and produces **analytics-ready data**.
 
-Primary technologies:
+Primary technologies used:
 
 * Apache Airflow — orchestration
-* Apache Spark on EMR — distributed processing
+* Apache Spark on AWS EMR — distributed processing
 * Amazon S3 — data lake storage
 * Amazon Redshift Serverless — analytical warehouse
-* dbt — analytics modeling and validation
+* dbt — analytics modeling and testing
+* AWS Secrets Manager — credential management
+* Grafana — analytics dashboard and pipeline monitoring 
+
 
 Pipeline DAG:
 
@@ -27,23 +32,15 @@ Pipeline DAG:
 NYC_taxi_flow
 ```
 
-The platform is intended to behave like a **deployable batch data platform where environments and runtime behavior are controlled entirely through configuration.**
-
 ---
 
 # Architecture
 
 ```
-                +----------------------+
-                |  NYC TLC Dataset     |
-                |  CloudFront Parquet  |
-                +----------+-----------+
-                           |
-                           v
-                 +-------------------+
-                 |  Airflow DAG      |
-                 |  (NYC_taxi_flow)  |
-                 +---------+---------+
+                +----------------------------------+
+                |  NYC TLC Yellow taxi Dataset     |
+                |  CloudFront Parquet              |
+                +----------+-----------------------+
                            |
                            v
                     +-------------+
@@ -76,190 +73,36 @@ The platform is intended to behave like a **deployable batch data platform where
                        +--------+
                            |
                            v
-                  Analytics / BI
+                  Analytics / BI (grafana)
 ```
 
 ---
 
-# Platform Design Goals
+# Platform Design Principles
 
-This project intentionally focuses on **platform characteristics rather than a single pipeline**.
+Key platform principles include:
 
-Key goals:
+### Configuration Driven Execution
 
-### Configuration Driven
+Runtime behaviors are controlled via environment configuration files.
 
-Runtime behavior is controlled through configuration files and environment variables.
+This allows:
 
-This enables:
-
-* environment portability
-* easy runtime tuning
+* easy environment configurations
 * reproducible runs
-* minimal code changes across deployments
+* minimal code modification
 
 ---
 
-### Deployable Batch Platform
 
-The system can be deployed into different environments simply by adjusting configuration.
+### Cost Efficient Compute
 
-Example deployment targets:
-
-* local Spark execution
-* EMR distributed processing
-* local file storage
-* S3 data lake
-
----
-
-### Reproducible Data Processing
-
-Each run is defined by a **data period parameter**.
-
-This enables:
-
-* deterministic processing
-* historical backfills
-* easy debugging of past runs
-
----
-
-# Pipeline Workflow
-
-The Airflow DAG orchestrates the following stages.
-
-## 1. Data Ingestion
-
-Task:
-
-```
-fetch_data_to_s3
-```
-
-Downloads monthly taxi parquet datasets from the NYC TLC CloudFront endpoint.
-
-Raw files are stored in S3:
-
-```
-s3://<bucket>/NYC_taxi/raw/YYYY/MM/yellow_tripdata_YYYY-MM.parquet
-```
-
-The raw zone is **immutable**.
+The platform uses **ephemeral EMR clusters** instead of long-running infrastructure or serverless Spark.
 
 Benefits:
 
-* reproducibility
-* replayability
-* auditability
-
----
-
-## 2. Runtime Setup
-
-Tasks:
-
-```
-setup_conf_in_s3
-upload_bootstrap_to_s3
-```
-
-These tasks prepare runtime configuration and bootstrap scripts used by the Spark cluster.
-
----
-
-## 3. EMR Cluster Execution
-
-Tasks:
-
-```
-create_cluster
-add_step
-wait_for_step
-terminate_cluster
-```
-
-The pipeline provisions an **ephemeral EMR cluster** for each run.
-
-Advantages:
-
-* isolated execution environments
-* predictable compute usage
-* no long-running cluster maintenance
-
----
-
-## 4. Distributed Spark Transformation
-
-Spark job:
-
-```
-spark_jobs/etl_spark_emr.py
-```
-
-Key transformations:
-
-* schema normalization
-* timestamp normalization
-* enrichment of trip attributes
-* generation of data quality metrics
-
-Processed output:
-
-```
-s3://<bucket>/NYC_taxi/processed/YYYY/MM/yellow_tripdata_YYYY-MM.parquet
-```
-
-Data quality metrics:
-
-```
-s3://<bucket>/NYC_taxi/processed/YYYY/MM/extras/
-```
-
----
-
-## 5. Warehouse Loading
-
-Tasks:
-
-```
-redshift_create_table
-redshift_create_extras_table
-copy_to_redshfit
-copy_extras_to_redshfit
-```
-
-Processed data is loaded into Redshift using the high-performance `COPY` command.
-
-Tables created:
-
-```
-yellow_taxi_trips_<YYYY_MM>
-yellow_taxi_trips_<YYYY_MM>_stats
-```
-
----
-
-## 6. Analytics Modeling
-
-Tasks:
-
-```
-run_dbt_transforms
-run_dbt_tests
-```
-
-dbt builds analytics models on top of warehouse tables.
-
-Example models:
-
-```
-taxi_agg_<YYYY_MM>
-dq_agg_<YYYY_MM>
-yellow_taxi_analytics
-```
-
-dbt tests enforce data quality constraints.
+* no idle cluster costs
+* cheaper than serverless for large batch workloads.
 
 ---
 
@@ -267,24 +110,52 @@ dbt tests enforce data quality constraints.
 
 Configuration is the core of the platform.
 
-The system is designed so that **behavior can be modified without changing code**.
+The system relies on an **environment file (`conf/env`)** that defines runtime parameters.
 
-Primary configuration sources:
+This approach allows the same codebase to run in:
 
-```
-config.py
-conf/env
-```
+* local development
+* staging environments
+* production environments
 
-The configuration layer uses **environment variables and Pydantic settings** for validation.
+without code modifications.
+
+Configuration values are validated using **Pydantic settings** in `config.py`.
 
 ---
 
-# Key Configuration Options
+# Environment Configuration
 
-## Environment Control
+The `.env` file controls most runtime behavior including:
 
-Defines where the pipeline executes.
+* storage paths
+* compute environment
+* dataset URL templates
+* lookup file locations
+* Spark script locations
+
+Example configuration:
+
+```
+EXEC_ENV=emr - sets spark execution environment to emr / local. we can use local here to run tests on logic before testing it on EMR which is expensive.
+DATA_STORE=s3 - can be set to local or s3 which defines the raw and processed data storage locations.
+RUN_DATE=2025-01-01 - used for single test run
+
+
+S3_BUCKET_SIMPLE=my-data-bucket
+S3_RAW_KEY=NYC_taxi/raw
+S3_PRCSD_KEY=NYC_taxi/processed
+
+FILE_URL_TEMPLATE=https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{year}-{month}.parquet
+
+LOOKUP_FILES_PATH=data/lookups/
+
+SPARK_SCRIPT_S3_PATH=s3://platform/scripts/etl_spark_emr.py
+```
+
+Configuration options include:
+
+### Runtime Environment
 
 ```
 EXEC_ENV
@@ -297,17 +168,11 @@ local
 emr
 ```
 
-Example:
-
-```
-EXEC_ENV=emr
-```
+Defines where Spark runs.
 
 ---
 
-## Data Storage Backend
-
-Controls where data is stored.
+### Storage Backend
 
 ```
 DATA_STORE
@@ -320,228 +185,277 @@ local
 s3
 ```
 
-This allows the platform to run locally for development or on AWS in production.
+Allows local development or full cloud execution.
 
-Example:
+---
+
+### Dataset URL Template
 
 ```
-DATA_STORE=s3
+FILE_URL_TEMPLATE
+```
+
+Defines how source data URLs are generated dynamically.
+
+---
+
+### Lookup Data Paths
+
+```
+LOOKUP_FILES_PATH
+```
+
+Specifies location of reference datasets used during enrichment.
+
+---
+
+### Script Locations
+
+```
+SPARK_SCRIPT_S3_PATH
+```
+
+Defines the Spark job location used by EMR clusters.
+
+---
+
+# Airflow Orchestration
+
+Apache Airflow is used for pipeline orchestration.
+
+Primary DAG:
+
+```
+NYC_taxi_flow
+```
+
+Airflow manages:
+
+* task dependencies
+* retry logic
+* scheduling
+* cluster lifecycle
+* pipeline monitoring.
+
+Airflow tasks include:
+
+```
+fetch_data_to_s3 - data ingestion to datalake
+setup_conf_in_s3 - setting up enviroment and saving scripts to s3 for EMR step
+upload_bootstrap_to_s3 - generate EMR bootstrap to install dependencies
+create_cluster - triggers start of EMR cluster
+add_step - adds the spark step to EMR 
+wait_for_step - sensor to await step completion
+terminate_cluster - terminate the cluster regardless of fail or pass of the step run.
+redshift_create_table - create the reshift tables if they dont exist to avoid runtime error
+copy_to_redshift - load to redshift
+run_dbt_transforms - trigger dbt model transforms
+run_dbt_tests - run dbt tests
 ```
 
 ---
 
-## Run Date / Data Period
 
-Defines which dataset period the pipeline processes.
+# Local Development Workflow
 
-```
-RUN_DATE
-```
+To minimize cloud costs during development, the platform supports **local execution**.
 
-Example:
+Typical workflow:
 
-```
-RUN_DATE=2025-01-01
-```
+1. run Spark jobs locally
+2. validate transformations
+3. run tests locally
+4. CI/CD pipeline executes tests on EMR
 
-This enables:
-
-* historical backfills
-* deterministic reruns
-* debugging past runs
-
----
-
-## S3 Storage Configuration
-
-Primary storage bucket:
-
-```
-S3_BUCKET_SIMPLE
-```
-
-Raw data prefix:
-
-```
-S3_RAW_KEY
-```
-
-Processed data prefix:
-
-```
-S3_PRCSD_KEY
-```
-
-Example:
-
-```
-S3_BUCKET_SIMPLE=my-data-bucket
-S3_RAW_KEY=NYC_taxi/raw
-S3_PRCSD_KEY=NYC_taxi/processed
-```
-
----
-
-## File Naming Template
-
-Defines dataset naming pattern.
-
-```
-FILE_NAME_TEMPLATE
-```
-
-Example:
-
-```
-yellow_tripdata_{year}-{month}.parquet
-```
-
----
-
-# Configuration Design Principles
-
-### Environment portability
-
-The same codebase can run in:
-
-* local development
-* staging
-* production
-
-Only configuration changes.
-
----
-
-### Parameterized pipelines
-
-Runs are parameterized by **RUN_DATE**.
-
-This allows:
-
-* replaying historical data
-* backfilling missing months
-* deterministic processing.
-
----
-
-### Infrastructure flexibility
-
-Switching compute or storage layers requires only config changes.
-
-Example:
-
-Local development:
+Example configuration:
 
 ```
 EXEC_ENV=local
 DATA_STORE=local
 ```
 
-Production:
+Once local validation succeeds, CI/CD executes distributed tests using EMR.
+
+---
+
+# Backfilling and Idempotent Runs
+
+The pipeline supports **historical backfills** and **safe reruns**.
+
+Backfill behavior:
+
+* historical partitions can be reprocessed
+* output paths are deterministic
+* reruns overwrite the same partition safely.
+
+---
+
+# Data Processing
+
+Spark performs the main transformation stage.
+
+Key tasks include:
+
+* schema enforcement
+* data validation
+* feature enrichment
+* aggregation preparation
+* generation of data quality metrics.
+
+Processed outputs are written to:
 
 ```
-EXEC_ENV=emr
-DATA_STORE=s3
+S3 processed zone
+```
+
+Example:
+
+```
+s3://bucket/NYC_taxi/processed/YYYY/MM/
 ```
 
 ---
 
-# Data Quality Strategy
+# Schema Enforcement
 
-Data quality checks occur in two stages.
+Incoming datasets are validated against an expected schema.
 
-## Spark-level validation
+This prevents:
 
-Spark generates metrics including:
+* schema drift
+* incorrect type inference
+* downstream pipeline failures.
 
-* record counts
-* null column counts
-* distribution statistics
-* schema validation
-
-Metrics are written to the extras dataset.
+Spark enforces schema during read operations.
 
 ---
 
-## dbt validation
+# Data Validation
 
-dbt tests enforce:
+Validation occurs during the Spark transformation stage.
 
-* non-null constraints
-* accepted values
-* referential integrity
-* metric sanity checks
+Examples include:
 
----
+* null checks
+* range validation
+* categorical value checks
+* timestamp sanity checks.
 
-# Scaling Considerations
-
-### Distributed compute
-
-Spark on EMR provides horizontal scaling.
-
-Large datasets are processed across worker nodes.
+Validation metrics are recorded and exported.
 
 ---
 
-### Partitioned storage
+# Dead Letter Handling
 
-S3 datasets are partitioned by:
+Invalid records are not dropped silently.
+
+Instead, they are redirected to a **dead letter dataset**.
+
+Dead letter storage:
 
 ```
-year/month
+s3://bucket/NYC_taxi/dead_letter/
 ```
 
-Benefits:
+This enables:
 
-* efficient Spark scans
-* lower query cost
-* incremental ingestion
-
----
-
-### Parallel warehouse ingestion
-
-Redshift `COPY` loads data directly from S3 using parallel slices.
-
-This significantly improves ingestion performance.
+* investigation of corrupt records
+* data debugging
+* pipeline transparency.
 
 ---
 
-### Incremental analytics models
+# Data Quality Metrics
 
-dbt incremental models avoid full-table rebuilds.
-
----
-
-# Reliability Design
-
-### Idempotent data ingestion
-
-Raw data is immutable.
-
-Failed runs can safely be replayed.
+Spark generates data quality metric while processing which will be used by dbt for testing the integrity of data loaded to redshift. current metrics used are row count and sum of trip_amount
 
 ---
 
-### Ephemeral compute clusters
+# Warehouse Layer
 
-EMR clusters are created and destroyed per run.
+Processed datasets are loaded into **Amazon Redshift** using the high-performance `COPY` command.
 
-This prevents cluster drift and reduces cost.
+Tables created per run:
+
+```
+yellow_taxi_trips_<YYYY_MM>
+yellow_taxi_trips_<YYYY_MM>_stats
+```
+
+Partition-based tables simplify incremental loading and historical backfills.
 
 ---
 
-### Task-level failure isolation
+# Analytics Modeling with dbt
 
-Airflow DAG tasks isolate each stage:
+dbt builds analytics models on top of warehouse tables.
 
-* ingestion
-* transformation
-* loading
-* modeling
+Examples:
 
-Failures can be retried independently.
+```
+taxi_agg_<YYYY_MM>
+dq_agg_<YYYY_MM>
+yellow_taxi_analytics
+```
+
+dbt performs:
+
+* transformation modeling
+* data quality tests
+* reconciliation tests.
+
+Aggregation reconciliation ensures that metrics computed from processed datasets match expected totals.
+
+---
+
+# Secrets Management
+
+Credentials are stored securely using **AWS Secrets Manager**.
+
+Examples:
+
+* Redshift credentials
+* database access tokens
+
+Airflow and dbt retrieve secrets dynamically during runtime.
+
+This avoids storing credentials in source code.
+
+---
+
+# Monitoring
+
+Pipeline monitoring is implemented using **Grafana dashboards**.
+
+Metrics tracked include:
+
+* pipeline runtime
+* row counts processed
+* validation failure rates
+* EMR cluster usage
+* pipeline success/failure rates.
+
+Monitoring enables early detection of pipeline issues.
+
+---
+
+# Testing
+
+Tests exist at multiple layers.
+
+Unit tests:
+
+```
+pytest
+```
+
+Test coverage includes:
+
+* configuration parsing
+* Airflow DAG logic
+* file helper utilities.
+
+CI/CD pipelines validate the pipeline on EMR before deployment.
 
 ---
 
@@ -550,37 +464,27 @@ Failures can be retried independently.
 ```
 airflow/
   etl_flow.py
-  FileOps.py
 
 spark_jobs/
   etl_spark_emr.py
 
-pyspark/
-  legacy spark scripts
-
 dbt/
   models/
   tests/
-  dbt_project.yml
-  profiles.yml
 
 sql/
-  create_target_table.sql
-  create_extras_table.sql
+  warehouse DDL
 
 conf/
-  env
+  env configuration
 
 test/
-  airflow/
-  config tests
+  pipeline tests
 ```
 
 ---
 
 # Running the Platform
-
-## Airflow (recommended)
 
 Deploy DAG:
 
@@ -588,7 +492,7 @@ Deploy DAG:
 airflow/etl_flow.py
 ```
 
-Trigger:
+Trigger pipeline:
 
 ```
 NYC_taxi_flow
@@ -604,65 +508,16 @@ Runs monthly.
 
 ---
 
-## Manual Spark Run
-
-```
-python -m spark_jobs.etl_spark_emr --run-date 2025-01-01
-```
-
----
-
-## dbt Execution
-
-```
-cd dbt
-
-./run_dbt.sh 2025_01
-./test_dbt.sh 2025_01
-```
-
----
-
-# Testing
-
-Run tests:
-
-```
-pytest -q
-```
-
-Coverage includes:
-
-* configuration parsing
-* Airflow DAG logic
-* file helper utilities
-* configuration rendering
-
----
-
-# Future Improvements
-
-Potential platform extensions:
-
-* automated CI/CD for Airflow DAGs
-* data lineage tracking
-* monitoring via Prometheus/Grafana
-* automated backfill tooling
-* advanced data validation with Great Expectations
-* Redshift distribution and sort key optimization
-
----
-
 # Summary
 
 This project demonstrates a configurable batch data platform with:
 
 * distributed Spark processing
-* warehouse analytics modeling
-* Airflow orchestration
 * configuration-driven deployment
-* reproducible batch processing
+* cost-efficient ephemeral compute
+* strong data validation and schema enforcement
+* dead-letter handling for invalid records
+* dbt-powered analytics modeling
+* secrets management and monitoring
 
-The architecture reflects patterns commonly used in modern production data platforms.
-
-
+The architecture reflects patterns commonly used in **modern production data platforms**.
