@@ -37,43 +37,8 @@ NYC_taxi_flow
 # Architecture
 
 ```
-                +----------------------------------+
-                |  NYC TLC Yellow taxi Dataset     |
-                |  CloudFront Parquet              |
-                +----------+-----------------------+
-                           |
-                           v
-                    +-------------+
-                    |  S3 Raw     |
-                    | Data Lake   |
-                    +------+------+
-                           |
-                           v
-                  +----------------+
-                  | Spark on EMR   |
-                  | Distributed ETL|
-                  +--------+-------+
-                           |
-                           v
-                    +-------------+
-                    | S3 Processed|
-                    | Data + DQ   |
-                    +------+------+
-                           |
-                           v
-                    +-------------+
-                    | Redshift    |
-                    | Warehouse   |
-                    +------+------+
-                           |
-                           v
-                       +--------+
-                       |  dbt   |
-                       | Models |
-                       +--------+
-                           |
-                           v
-                  Analytics / BI (grafana)
+![Architecture](architecture.png)
+
 ```
 
 ---
@@ -81,30 +46,6 @@ NYC_taxi_flow
 # Platform Design Principles
 
 Key platform principles include:
-
-### Configuration Driven Execution
-
-Runtime behaviors are controlled via environment configuration files.
-
-This allows:
-
-* easy environment configurations
-* reproducible runs
-* minimal code modification
-
----
-
-
-### Cost Efficient Compute
-
-The platform uses **ephemeral EMR clusters** instead of long-running infrastructure or serverless Spark.
-
-Benefits:
-
-* no idle cluster costs
-* cheaper than serverless for large batch workloads.
-
----
 
 # Configuration System
 
@@ -218,6 +159,19 @@ SPARK_SCRIPT_S3_PATH
 Defines the Spark job location used by EMR clusters.
 
 ---
+
+
+### Cost Efficient Compute
+
+The platform uses **ephemeral EMR clusters** instead of long-running infrastructure or serverless Spark.
+
+Benefits:
+
+* no idle cluster costs
+* cheaper than serverless for large batch workloads.
+
+---
+
 
 # Airflow Orchestration
 
