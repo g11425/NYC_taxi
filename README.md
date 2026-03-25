@@ -211,8 +211,7 @@ The `NYC_taxi_flow` DAG orchestrates the batch pipeline through the following ta
 | `run_dbt_transforms`     | Executes dbt models to perform analytics transformations.                                      |
 | `run_dbt_tests`          | Runs dbt tests to validate model outputs and data quality.                                     |
 
----
----
+
 
 # Local Development Workflow
 
