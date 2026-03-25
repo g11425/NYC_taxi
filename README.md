@@ -36,10 +36,8 @@ NYC_taxi_flow
 
 # Architecture
 
-```
 ![Architecture](architecture.png)
 
-```
 
 ---
 
