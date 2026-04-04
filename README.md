@@ -36,75 +36,14 @@ NYC_taxi_flow
 
 # Architecture
 
-```
-                +----------------------------------+
-                |  NYC TLC Yellow taxi Dataset     |
-                |  CloudFront Parquet              |
-                +----------+-----------------------+
-                           |
-                           v
-                    +-------------+
-                    |  S3 Raw     |
-                    | Data Lake   |
-                    +------+------+
-                           |
-                           v
-                  +----------------+
-                  | Spark on EMR   |
-                  | Distributed ETL|
-                  +--------+-------+
-                           |
-                           v
-                    +-------------+
-                    | S3 Processed|
-                    | Data + DQ   |
-                    +------+------+
-                           |
-                           v
-                    +-------------+
-                    | Redshift    |
-                    | Warehouse   |
-                    +------+------+
-                           |
-                           v
-                       +--------+
-                       |  dbt   |
-                       | Models |
-                       +--------+
-                           |
-                           v
-                  Analytics / BI (grafana)
-```
+![Architecture](architecture.png)
+
 
 ---
 
 # Platform Design Principles
 
 Key platform principles include:
-
-### Configuration Driven Execution
-
-Runtime behaviors are controlled via environment configuration files.
-
-This allows:
-
-* easy environment configurations
-* reproducible runs
-* minimal code modification
-
----
-
-
-### Cost Efficient Compute
-
-The platform uses **ephemeral EMR clusters** instead of long-running infrastructure or serverless Spark.
-
-Benefits:
-
-* no idle cluster costs
-* cheaper than serverless for large batch workloads.
-
----
 
 # Configuration System
 
@@ -219,6 +158,19 @@ Defines the Spark job location used by EMR clusters.
 
 ---
 
+
+### Cost Efficient Compute
+
+The platform uses **ephemeral EMR clusters** instead of long-running infrastructure or serverless Spark.
+
+Benefits:
+
+* no idle cluster costs
+* cheaper than serverless for large batch workloads.
+
+---
+
+
 # Airflow Orchestration
 
 Apache Airflow is used for pipeline orchestration.
@@ -259,8 +211,7 @@ The `NYC_taxi_flow` DAG orchestrates the batch pipeline through the following ta
 | `run_dbt_transforms`     | Executes dbt models to perform analytics transformations.                                      |
 | `run_dbt_tests`          | Runs dbt tests to validate model outputs and data quality.                                     |
 
----
-
+```
 
 # Local Development Workflow
 

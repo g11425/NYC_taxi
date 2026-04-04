@@ -1,0 +1,11 @@
+env file to easy configuration of files path, url template, run environment, look up files, script locations in s3.
+backfilling and idempotent run
+airflow for orchestration
+ephimeral EMR run instead of serverless for reduced cost
+local testing to reduce cost and once local passes then CI CD will test in EMR
+schema enforcing
+data validation
+Dead letter implementation for invalid data
+modeling and agg recon testing using dbt
+secrets manager for credentials store
+grafana for monitoring
